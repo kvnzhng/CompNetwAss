@@ -9,7 +9,7 @@ class TCPClient {
     public static void main(String[] args) throws Exception {
 
         try {
-            TCPClient("www.google.com");
+            TCPClient("google.com");
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -32,6 +32,7 @@ class TCPClient {
             loc = "";
 
         String header = "GET /" + loc + " HTTP/1.1";
+        //TODO: laten werken met HTTP 1.0 indien 1.1 niet ondersteunt is.
 
         pw.println(header);
         pw.println("");
@@ -45,6 +46,7 @@ class TCPClient {
             String[] parts = t.split(" ");
             String domain = null;
             String location = null;
+            //TODO: andere exceptions kunnen opvangen.
             if (parts.length>1 && parts[1].contains("302")){
                 //redirection
                 while ((t=br.readLine()) != null){
