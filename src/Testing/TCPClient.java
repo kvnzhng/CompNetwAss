@@ -4,38 +4,69 @@ package Testing;
  */
 import java.io.*;
 import java.net.*;
-class TCPClient
-{
-    public static void main(String argv[]) throws Exception
-    {
-        //System.out.println("enter ");
-        BufferedReader inFromUser = new BufferedReader( new InputStreamReader(System.in));
-        InetAddress addr = InetAddress.getByName("www.google.com");
-        Socket clientSocket = new Socket(addr, 80);
-        DataOutputStream outToServer = new DataOutputStream
-                (clientSocket.getOutputStream());
+class TCPClient {
 
-        BufferedReader inFromServer = new BufferedReader(new
-                InputStreamReader(clientSocket.getInputStream()));
+    public static void main(String[] args) throws Exception {
 
-
-        //user sends
-        String sentence = inFromUser.readLine();
-
-        outToServer.writeBytes(sentence + '\n');
-
-        //String modifiedSentence = inFromServer.readLine();
-
-        //ser receives
-        String inputline;
-        StringBuffer response = new StringBuffer();
-
-        while ((inputline = inFromServer.readLine()) != null){
-            response.append(inputline);
+        try {
+            TCPClient("www.google.com");
+        } catch (Exception e) {
+            e.printStackTrace();
         }
 
-        System.out.println("FROM SERVER: " + response.toString());
-        inFromServer.close();
+    }
+
+
+    public static void TCPClient(String url) throws Exception {
+            TCPClient(url,null);
+        }
+
+    public static void TCPClient(String url, String loc) throws Exception {
+
+        InetAddress addr = InetAddress.getByName(url);
+        Socket clientSocket = new Socket(addr, 80);
+
+        PrintWriter pw = new PrintWriter(clientSocket.getOutputStream());
+
+        if (loc == null)
+            loc = "";
+
+        String header = "GET /" + loc + " HTTP/1.1";
+
+        pw.println(header);
+        pw.println("");
+        pw.flush();
+
+
+        boolean redirect = false;
+        BufferedReader br = new BufferedReader(new InputStreamReader(clientSocket.getInputStream()));
+        String t;
+        while((t = br.readLine()) != null) {
+            String[] parts = t.split(" ");
+            String domain = null;
+            String location = null;
+            if (parts.length>1 && parts[1].contains("302")){
+                //redirection
+                while ((t=br.readLine()) != null){
+                    String[] parts2 = t.split(" ");
+                    if (parts2[0].contains("Location:")){
+                        String redirectLoc = parts2[1];
+                        String[] parts3 = redirectLoc.split("/");
+                        domain = parts3[2];
+                        location = parts3[3];
+                        redirect = true;
+                        break;
+                    }
+                }
+            }
+            if (redirect || domain != null || location != null)
+                TCPClient(domain,location);
+            else
+                System.out.println(t);
+        }
+
+        pw.close();
+        br.close();
         clientSocket.close();
     }
 }
