@@ -9,7 +9,7 @@ class TCPClient {
     public static void main(String[] args) throws Exception {
 
         try {
-            TCPClient("google.com");
+            TCPClient("www.google.com");
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -43,25 +43,25 @@ class TCPClient {
         BufferedReader br = new BufferedReader(new InputStreamReader(clientSocket.getInputStream()));
         String t;
         while((t = br.readLine()) != null) {
-            String[] parts = t.split(" ");
-            String domain = null;
-            String location = null;
+            String domain=null;
+            String location=null;
+            if (t.contains("302"))
             //TODO: andere exceptions kunnen opvangen.
-            if (parts.length>1 && parts[1].contains("302")){
+            {
                 //redirection
                 while ((t=br.readLine()) != null){
-                    String[] parts2 = t.split(" ");
-                    if (parts2[0].contains("Location:")){
+                    if (t.contains("Location:")){
+                        String[] parts2 = t.split(" ");
                         String redirectLoc = parts2[1];
                         String[] parts3 = redirectLoc.split("/");
+                        redirect = true;
                         domain = parts3[2];
                         location = parts3[3];
-                        redirect = true;
                         break;
                     }
                 }
             }
-            if (redirect || domain != null || location != null)
+            if (redirect)
                 TCPClient(domain,location);
             else
                 System.out.println(t);
