@@ -94,7 +94,7 @@ class TCPClient {
                 }
             }
             if (redirect)
-                TCPClient(domain,location);
+                TCPClient(command, domain,location, port);
             else
                 System.out.println(t);
         }
