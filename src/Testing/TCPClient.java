@@ -2,8 +2,14 @@ package Testing;
 /**
  * Created by KevinZh on 08/03/2017.
  */
+
 import java.io.*;
 import java.net.*;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+
 class TCPClient {
 
     public static void main(String[] args) throws Exception {
@@ -66,11 +72,11 @@ class TCPClient {
         if (loc == null)
             loc = "";
 
-        String initialLine = command + " /" + loc + " HTTP/1.1";
-        String header = "Host: "+url;
+        String requestLine = command + " /" + loc + " HTTP/1.1";
+        String requestURI = "Host: "+url;
 
-        pw.println(initialLine);
-        pw.println(header);
+        pw.println(requestLine);
+        pw.println(requestURI);
         pw.println("");
         pw.flush();
 
@@ -90,6 +96,11 @@ class TCPClient {
         }*/
 
         boolean redirect = false;
+        final BufferedWriter writer;
+
+        Path dst = Paths.get("C:", "output.html");
+        writer = Files.newBufferedWriter(dst, StandardCharsets.UTF_8);
+
         BufferedReader br = new BufferedReader(new InputStreamReader(clientSocket.getInputStream()));
         String t;
         while((((t = br.readLine())) != null) || (t.equals("") && command.equals("HEAD"))) { // zou dit goed genoeg zijn voor de head?
@@ -113,8 +124,10 @@ class TCPClient {
             }
             if (redirect)
                 TCPClient(command, domain,location, port);
-            else
+            else {
+                writer.write(t); //save the text
                 System.out.println(t);
+            }
         }
 
 
@@ -166,6 +179,10 @@ class TCPClient {
     }
 
     private void put(String url) {
+
+    }
+
+    private void GET(){ // retrieve images from the html file
 
     }
 }
