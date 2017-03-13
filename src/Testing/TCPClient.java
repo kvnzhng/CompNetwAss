@@ -2,6 +2,10 @@ package Testing;
 /**
  * Created by KevinZh on 08/03/2017.
  */
+import org.jsoup.Jsoup;
+import org.jsoup.nodes.Document;
+import org.jsoup.nodes.Element;
+import org.jsoup.select.Elements;
 
 import java.io.*;
 import java.net.*;
@@ -182,7 +186,17 @@ class TCPClient {
 
     }
 
-    private void GET(){ // retrieve images from the html file
+    private void GET() throws IOException { // retrieve images from the html file
+        byte[] encoded = Files.readAllBytes(Paths.get("C:/output.html"));
+        String htmlAsString = new String(encoded, StandardCharsets.UTF_8);
+        Document doc = Jsoup.parse(htmlAsString);
+        Elements images = doc.select("img");
+        for (Element el : images) {
+            String imageUrl = el.attr("src");
+            try(InputStream in = new URL(imageUrl).openStream()){
+                Files.copy(in, Paths.get("C:"));
+            }
+        }
 
     }
 }
