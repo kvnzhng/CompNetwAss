@@ -92,7 +92,7 @@ class TCPClient {
         boolean redirect = false;
         BufferedReader br = new BufferedReader(new InputStreamReader(clientSocket.getInputStream()));
         String t;
-        while((t = br.readLine()) != null) {
+        while((((t = br.readLine())) != null) || (t.equals("") && command.equals("HEAD"))) { // zou dit goed genoeg zijn voor de head?
             String domain=null;
             String location=null;
             if (t.contains("302"))
