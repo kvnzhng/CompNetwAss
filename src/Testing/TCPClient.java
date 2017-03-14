@@ -13,6 +13,8 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.ArrayList;
+import java.util.Objects;
 
 class TCPClient {
 
@@ -66,113 +68,98 @@ class TCPClient {
 
     public static void TCPClient(String command, String url, String loc, String port) throws Exception {
 
-        InetAddress addr = InetAddress.getByName(url);
+        ArrayList<String> requestHeader;
+
         if (port == null)
             port = "80";
-        Socket clientSocket = new Socket(addr, Integer.parseInt(port));
-
-        PrintWriter pw = new PrintWriter(clientSocket.getOutputStream());
-
         if (loc == null)
             loc = "";
 
-        String requestLine = command + " /" + loc + " HTTP/1.1";
-        String requestURI = "Host: "+url;
+        InetAddress addr = InetAddress.getByName(url);
+        Socket clientSocket = new Socket(addr, Integer.parseInt(port));
+        PrintWriter pw = new PrintWriter(clientSocket.getOutputStream());
 
-        pw.println(requestLine);
-        pw.println(requestURI);
+        String urlParameters=null;
+
+        //make the requestheader
+         requestHeader = makeRequestHeader(command,url,loc,urlParameters);//url parameters voor Post en Put ergens definieren.
+
+        //send requestheader
+        for (String line: requestHeader)
+            pw.println(line);
         pw.println("");
         pw.flush();
 
-        /*switch (command) {  TODO implementeren van methodes
-            case "HEAD":
-                head(url); //TODO
-                break;
-            case "GET":
-                get(url); //TODO
-                break;
-            case "PUT":
-                put(url); //TODO
-                break;
-            case "POST":
-                post(url); //TODO
-                break;
-        }*/
+        BufferedReader response = bufferResponse(clientSocket, command, port);
 
-        boolean redirect = false;
-        final BufferedWriter writer;
+        saveFile(response);
+        pw.close();
 
-        Path dst = Paths.get("C:", "output.html");
-        writer = Files.newBufferedWriter(dst, StandardCharsets.UTF_8);
+        clientSocket.close();
+    }
+
+    private static BufferedReader bufferResponse(Socket clientSocket,String command, String port) throws Exception {
 
         BufferedReader br = new BufferedReader(new InputStreamReader(clientSocket.getInputStream()));
-        String t;
-        while((((t = br.readLine())) != null) || (t.equals("") && command.equals("HEAD"))) { // zou dit goed genoeg zijn voor de head?
-            String domain=null;
-            String location=null;
-            if (t.contains("302"))
-            //TODO: andere exceptions kunnen opvangen.
-            {
-                //redirection
-                while ((t=br.readLine()) != null){
-                    if (t.contains("Location:")){
-                        String[] parts2 = t.split(" ");
-                        String redirectLoc = parts2[1];
-                        String[] parts3 = redirectLoc.split("/");
-                        redirect = true;
-                        domain = parts3[2];
-                        location = parts3[3];
-                        break;
-                    }
+        br.mark(1);
+        String t = br.readLine();
+
+        String domain;
+        String location;
+
+        if (t.contains("302"))
+        //TODO: andere exceptions kunnen opvangen.
+        {
+            //redirection
+            while (t != null) {
+                if (t.contains("Location:")) {
+                    String[] parts2 = t.split(" ");
+                    String redirectLoc = parts2[1];
+                    String[] parts3 = redirectLoc.split("/");
+                    domain = parts3[2];
+                    location = parts3[3];
+                    TCPClient(command, domain, location, port);
                 }
-            }
-            if (redirect)
-                TCPClient(command, domain,location, port);
-            else {
-                writer.write(t); //save the text
-                System.out.println(t);
+                t=br.readLine();
             }
         }
+        br.reset();
+        return br;
+    }
 
+    private static void saveFile(BufferedReader bufferResponse) throws IOException {
 
-        pw.close();
-        br.close();
-        clientSocket.close();
+        BufferedWriter writer;
+        Path dst = Paths.get("output.html");
+        writer = Files.newBufferedWriter(dst, StandardCharsets.UTF_8);
+
+        String t = bufferResponse.readLine();
+        while(t!=null){
+            System.out.println(t);
+            writer.write(t);
+            t = bufferResponse.readLine();
+        }
+        bufferResponse.close();
+
+    }
+
+    private static ArrayList<String> makeRequestHeader(String command, String url, String loc,String urlParameters) {
+        /*
+        makes request header
+         */
+        ArrayList<String> request = new ArrayList<>();
+        request.add(command + " /" + loc + " HTTP/1.1");
+        request.add("Host: "+url);
+        if (Objects.equals(command, "POST") || Objects.equals(command, "PUT"))
+            request.add(urlParameters); // nog te definieren
+
+        return request;
     }
 
     private static boolean isImplementedCommand(String command) {
         return (command.equals("GET") || command.equals("HEAD") ||command.equals("POST") ||command.equals("PUT"));
     }
 
-    /*private static void get(Socket clientSocket) {
-        boolean redirect = false;
-        BufferedReader br = new BufferedReader(new InputStreamReader(clientSocket.getInputStream()));
-        String t;
-        while((t = br.readLine()) != null) {
-            String domain=null;
-            String location=null;
-            if (t.contains("302"))
-            //TODO: andere exceptions kunnen opvangen.
-            {
-                //redirection
-                while ((t=br.readLine()) != null){
-                    if (t.contains("Location:")){
-                        String[] parts2 = t.split(" ");
-                        String redirectLoc = parts2[1];
-                        String[] parts3 = redirectLoc.split("/");
-                        redirect = true;
-                        domain = parts3[2];
-                        location = parts3[3];
-                        break;
-                    }
-                }
-            }
-            if (redirect)
-                TCPClient(command, domain,location, port);
-            else
-                System.out.println(t);
-        }
-    }*/
 
     private void head(String url) {
 
@@ -187,14 +174,14 @@ class TCPClient {
     }
 
     private void GET() throws IOException { // retrieve images from the html file
-        byte[] encoded = Files.readAllBytes(Paths.get("C:/output.html"));
+        byte[] encoded = Files.readAllBytes(Paths.get("output.html"));
         String htmlAsString = new String(encoded, StandardCharsets.UTF_8);
         Document doc = Jsoup.parse(htmlAsString);
         Elements images = doc.select("img");
         for (Element el : images) {
             String imageUrl = el.attr("src");
             try(InputStream in = new URL(imageUrl).openStream()){
-                Files.copy(in, Paths.get("C:"));
+                Files.copy(in, Paths.get("/"));
             }
         }
 
