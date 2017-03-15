@@ -15,8 +15,10 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Objects;
+import java.util.Scanner;
 
 class TCPClient {
+    private static String body;
 
     public static void main(String[] args) throws Exception {
 
@@ -31,8 +33,13 @@ class TCPClient {
             }
             String url = args[1];
 
+            if (command.equals("POST") || command.equals("PUT")) {
+                Scanner scanner = new Scanner(System.in);
+                System.out.println("Enter body: ");
+                body = scanner.next();
+            }
 
-            if (args.length == 2) {//zo moet het denk ik voor de cmd line
+            if (args.length == 2) {
                 try {
                     TCPClient(command, url);
                 } catch (Exception e) {
@@ -53,6 +60,8 @@ class TCPClient {
                     e.printStackTrace();
                 }
             }
+
+
         }
         else
             System.out.println("501 not implemented");
@@ -82,7 +91,7 @@ class TCPClient {
         String urlParameters=null;
 
         //make the requestheader
-         requestHeader = makeRequestHeader(command,url,loc,urlParameters);//url parameters voor Post en Put ergens definieren.
+         requestHeader = makeRequestHeader(command,url,loc);
 
         //send requestheader
         for (String line: requestHeader)
@@ -143,15 +152,22 @@ class TCPClient {
 
     }
 
-    private static ArrayList<String> makeRequestHeader(String command, String url, String loc,String urlParameters) {
+    private static ArrayList<String> makeRequestHeader(String command, String url, String loc) {
         /*
         makes request header
          */
         ArrayList<String> request = new ArrayList<>();
         request.add(command + " /" + loc + " HTTP/1.1");
         request.add("Host: "+url);
-        if (Objects.equals(command, "POST") || Objects.equals(command, "PUT"))
-            request.add(urlParameters); // nog te definieren
+
+        if (Objects.equals(command, "POST") || Objects.equals(command, "PUT")) {
+            int length = body.length();
+            request.add("Content-type: application/x-www-form-urlencoded");
+            request.add("Content-Length: "+length);
+            request.add("");
+            request.add(body); // nog te definieren
+
+        }
 
         return request;
     }
