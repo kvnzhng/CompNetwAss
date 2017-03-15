@@ -29,7 +29,8 @@ class TCPClient {
             try {
                 InetAddress.getByName(args[1]);
             } catch (UnknownHostException uhe) {
-                System.out.println("Unknown Host");
+                System.out.println("404 Not Found");
+                return;
             }
             String url = args[1];
 
@@ -51,6 +52,7 @@ class TCPClient {
                     Integer.parseInt(args[2]);
                 } catch (NumberFormatException nfe) {
                     System.out.println("Port is not a number");
+                    return;
                 }
                 String port = args[2];
 
