@@ -10,15 +10,14 @@ import org.jsoup.select.Elements;
 import java.io.*;
 import java.net.*;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.FileAlreadyExistsException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Objects;
-import java.util.Scanner;
 
 class TCPClient {
-    private static String body;
 
     public static void main(String[] args) throws Exception {
 
@@ -33,13 +32,8 @@ class TCPClient {
             }
             String url = args[1];
 
-            if (command.equals("POST") || command.equals("PUT")) {
-                Scanner scanner = new Scanner(System.in);
-                System.out.println("Enter body: ");
-                body = scanner.next();
-            }
 
-            if (args.length == 2) {
+            if (args.length == 2) {//zo moet het denk ik voor de cmd line
                 try {
                     TCPClient(command, url);
                 } catch (Exception e) {
@@ -60,8 +54,6 @@ class TCPClient {
                     e.printStackTrace();
                 }
             }
-
-
         }
         else
             System.out.println("501 not implemented");
@@ -91,7 +83,8 @@ class TCPClient {
         String urlParameters=null;
 
         //make the requestheader
-         requestHeader = makeRequestHeader(command,url,loc);
+        requestHeader = makeRequestHeader(command,url,loc,urlParameters);//url parameters voor Post en Put ergens definieren.
+
 
         //send requestheader
         for (String line: requestHeader)
@@ -99,41 +92,43 @@ class TCPClient {
         pw.println("");
         pw.flush();
 
-        BufferedReader response = bufferResponse(clientSocket, command, port);
-
-        saveFile(response);
-        pw.close();
-
-        clientSocket.close();
-    }
-
-    private static BufferedReader bufferResponse(Socket clientSocket,String command, String port) throws Exception {
-
         BufferedReader br = new BufferedReader(new InputStreamReader(clientSocket.getInputStream()));
         br.mark(1);
         String t = br.readLine();
-
-        String domain;
-        String location;
-
-        if (t.contains("302"))
-        //TODO: andere exceptions kunnen opvangen.
-        {
-            //redirection
-            while (t != null) {
-                if (t.contains("Location:")) {
-                    String[] parts2 = t.split(" ");
-                    String redirectLoc = parts2[1];
-                    String[] parts3 = redirectLoc.split("/");
-                    domain = parts3[2];
-                    location = parts3[3];
-                    TCPClient(command, domain, location, port);
-                }
-                t=br.readLine();
-            }
+        if (t.contains("302")){
+            br.reset();
+            String[] strings= redirect(br);
+            pw.close();
+            br.close();
+            clientSocket.close();
+            TCPClient(command, strings[0], strings[1], port);
+        }else{
+            br.reset();
+            saveFile(br);
+            br.close();
+            clientSocket.close();
+            GET(url);
         }
-        br.reset();
-        return br;
+        clientSocket.close();
+    }
+
+    private static String[] redirect(BufferedReader br) throws Exception {
+
+        String domain = null;
+        String location = null;
+        boolean found = false;
+        String t=br.readLine();
+        while (t != null && !found) {
+            if (t.contains("Location:")) {
+                found = true;
+                String[] parts2 = t.split(" ");
+                String redirectLoc = parts2[1];
+                String[] parts3 = redirectLoc.split("/");
+                domain = parts3[2];
+                location = parts3[3];}
+            t=br.readLine();
+        }
+        return new String[] {domain,location};
     }
 
     private static void saveFile(BufferedReader bufferResponse) throws IOException {
@@ -144,30 +139,22 @@ class TCPClient {
 
         String t = bufferResponse.readLine();
         while(t!=null){
-            System.out.println(t);
             writer.write(t);
+            writer.newLine();
             t = bufferResponse.readLine();
         }
-        bufferResponse.close();
-
+        writer.close();
     }
 
-    private static ArrayList<String> makeRequestHeader(String command, String url, String loc) {
+    private static ArrayList<String> makeRequestHeader(String command, String url, String loc,String urlParameters) {
         /*
         makes request header
          */
         ArrayList<String> request = new ArrayList<>();
         request.add(command + " /" + loc + " HTTP/1.1");
         request.add("Host: "+url);
-
-        if (Objects.equals(command, "POST") || Objects.equals(command, "PUT")) {
-            int length = body.length();
-            request.add("Content-type: application/x-www-form-urlencoded");
-            request.add("Content-Length: "+length);
-            request.add("");
-            request.add(body); // nog te definieren
-
-        }
+        if (Objects.equals(command, "POST") || Objects.equals(command, "PUT"))
+            request.add(urlParameters); // nog te definieren
 
         return request;
     }
@@ -189,15 +176,20 @@ class TCPClient {
 
     }
 
-    private void GET() throws IOException { // retrieve images from the html file
+    private static void GET(String url) throws IOException { // retrieve images from the html file
         byte[] encoded = Files.readAllBytes(Paths.get("output.html"));
         String htmlAsString = new String(encoded, StandardCharsets.UTF_8);
         Document doc = Jsoup.parse(htmlAsString);
         Elements images = doc.select("img");
         for (Element el : images) {
-            String imageUrl = el.attr("src");
+            String imageUrl = "http://"+url+"/"+el.attr("src");
+            String[] strings = el.attr("src").split("/");
             try(InputStream in = new URL(imageUrl).openStream()){
-                Files.copy(in, Paths.get("/"));
+                Files.copy(in, Paths.get(strings[strings.length-1]));
+            }catch (FileAlreadyExistsException e){
+
+            }catch (FileNotFoundException e){
+
             }
         }
 
