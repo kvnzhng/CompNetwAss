@@ -7,13 +7,16 @@ import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
 import org.jsoup.select.Elements;
 
+import javax.imageio.ImageIO;
+import javax.imageio.stream.ImageInputStream;
+import java.awt.image.BufferedImage;
 import java.io.*;
 import java.net.*;
 import java.nio.charset.StandardCharsets;
-import java.nio.file.FileAlreadyExistsException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.nio.file.StandardCopyOption;
 import java.util.ArrayList;
 import java.util.Objects;
 import java.util.Scanner;
@@ -39,7 +42,7 @@ class TCPClient {
                 Scanner scanner = new Scanner(System.in);
                 System.out.println("Enter body: ");
                 body = scanner.next();
-                }
+            }
 
             if (args.length == 2) {//zo moet het denk ik voor de cmd line
                 try {
@@ -73,10 +76,10 @@ class TCPClient {
     }
 
     public static void TCPClient(String command, String url, String port) throws Exception {
-        TCPClient(command, url,null,port);
+        TCPClient(command, url,null, port,false,null);
     }
 
-    public static void TCPClient(String command, String url, String loc, String port) throws Exception {
+    public static void TCPClient(String command, String url, String loc, String port, boolean retrieveObject, String objName) throws Exception {
 
         ArrayList<String> requestHeader;
 
@@ -101,58 +104,84 @@ class TCPClient {
         pw.println("");
         pw.flush();
 
-        BufferedReader br = new BufferedReader(new InputStreamReader(clientSocket.getInputStream()));
-        br.mark(1);
-        String t = br.readLine();
-        if (t.contains("302")){
-            br.reset();
-            String[] strings= redirect(br);
-            pw.close();
-            br.close();
-            clientSocket.close();
-            TCPClient(command, strings[0], strings[1], port);
-        }else{
-            br.reset();
-            saveFile(br);
-            br.close();
-            clientSocket.close();
-            GET(url);
-        }
+        InputStream stream = clientSocket.getInputStream();
+        saveResponse(stream);
+        stream.close();
         clientSocket.close();
+
+        int bytes = analyzeHeader();
+
+        saveBody(bytes ,retrieveObject,objName);
+
+
+        if (!retrieveObject)//object already retrieved two lines back
+            getImages(url);
+
     }
 
-    private static String[] redirect(BufferedReader br) throws Exception {
+    private static int analyzeHeader() throws Exception {
 
-        String domain = null;
-        String location = null;
-        boolean found = false;
-        String t=br.readLine();
-        while (t != null && !found) {
-            if (t.contains("Location:")) {
-                found = true;
-                String[] parts2 = t.split(" ");
-                String redirectLoc = parts2[1];
-                String[] parts3 = redirectLoc.split("/");
-                domain = parts3[2];
-                location = parts3[3];}
-            t=br.readLine();
+        FileInputStream fstream = new FileInputStream("output");
+        BufferedReader br = new BufferedReader(new InputStreamReader(fstream));
+
+        int bytes = 0;
+        String t = br.readLine();
+//        bytes += t.getBytes().length;
+        if (t.contains("404")){
+            throw new Exception("Server not found");
+        } else if (t.contains("500")){
+            throw new Exception("Server error");
+        } else if (t.contains("304")){
+            throw new Exception("Server modified");
+        } else if (t.contains("200")){
+            while(!t.isEmpty()){
+                t=br.readLine();
+//                bytes+=2;//enter costs 3 bytes
+//                bytes += t.getBytes().length;
+                if (t.contains("Content-Length")){
+                    String[] strings = t.split(": ");
+                    bytes = Integer.parseInt(strings[1]);
+                }
+            }
+            br.close();
+            return bytes;
+        } else{
+            throw new Exception("Other error");
         }
-        return new String[] {domain,location};
     }
 
-    private static void saveFile(BufferedReader bufferResponse) throws IOException {
+    private static void saveResponse(InputStream stream) throws IOException {
+        Path dst = Paths.get("output");
+        Files.copy(stream,dst, StandardCopyOption.REPLACE_EXISTING);
+    }
 
-        BufferedWriter writer;
-        Path dst = Paths.get("output.html");
-        writer = Files.newBufferedWriter(dst, StandardCharsets.UTF_8);
+    private static void saveBody(int bytesToSkip, boolean object,String objName) throws IOException {
+        FileInputStream fstream = new FileInputStream("output");
+        fstream.skip(fstream.getChannel().size()-bytesToSkip);
 
-        String t = bufferResponse.readLine();
-        while(t!=null){
-            writer.write(t);
-            writer.newLine();
-            t = bufferResponse.readLine();
+        if (!object) {
+            BufferedReader br = new BufferedReader(new InputStreamReader(fstream));
+
+            Path dst = Paths.get("body.html");
+            BufferedWriter writer = Files.newBufferedWriter(dst, StandardCharsets.UTF_8);
+
+            String t;
+
+            t = br.readLine();
+            while(t!=null){
+                writer.write(t);
+                writer.newLine();
+                t = br.readLine();
+            }
+            writer.close();
+            br.close();
+        } else{
+            String[] strings = objName.split("\\.");
+            ImageInputStream iis = ImageIO.createImageInputStream(fstream);
+            BufferedImage image = ImageIO.read(iis);
+            ImageIO.write(image, strings[1], new File(objName));
         }
-        writer.close();
+        fstream.close();
     }
 
     private static ArrayList<String> makeRequestHeader(String command, String url, String loc) {
@@ -178,21 +207,15 @@ class TCPClient {
     }
 
 
-    private static void GET(String url) throws IOException { // retrieve images from the html file
-        byte[] encoded = Files.readAllBytes(Paths.get("output.html"));
+    private static void getImages(String url) throws Exception { // retrieve images from the html file
+        byte[] encoded = Files.readAllBytes(Paths.get("body.html"));
         String htmlAsString = new String(encoded, StandardCharsets.UTF_8);
         Document doc = Jsoup.parse(htmlAsString);
         Elements images = doc.select("img");
         for (Element el : images) {
-            String imageUrl = "http://"+url+"/"+el.attr("src");
-            String[] strings = el.attr("src").split("/");
-            try(InputStream in = new URL(imageUrl).openStream()){
-                Files.copy(in, Paths.get(strings[strings.length-1]));
-            }catch (FileAlreadyExistsException e){
-
-            }catch (FileNotFoundException e){
-
-            }
+            String imageURI = el.attr("src");
+            String[] strings = imageURI.split("/");
+            TCPClient("GET",url,imageURI,null,true,strings[strings.length-1]);
         }
 
     }
