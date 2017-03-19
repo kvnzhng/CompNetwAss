@@ -76,17 +76,17 @@ class TCPClient {
     }
 
     public static void TCPClient(String command, String url, String port) throws Exception {
-        TCPClient(command, url,null, port,false,null);
+        TCPClient(command, url,null, port,false);
     }
 
-    public static void TCPClient(String command, String url, String loc, String port, boolean retrieveObject, String objName) throws Exception {
+    public static void TCPClient(String command, String url, String uri, String port, boolean retrieveObject) throws Exception {
 
         ArrayList<String> requestHeader;
 
         if (port == null)
             port = "80";
-        if (loc == null)
-            loc = "";
+        if (uri == null)
+            uri = "";
 
         InetAddress addr = InetAddress.getByName(url);
         Socket clientSocket = new Socket(addr, Integer.parseInt(port));
@@ -95,7 +95,7 @@ class TCPClient {
         String urlParameters=null;
 
         //make the requestheader
-        requestHeader = makeRequestHeader(command,url,loc);//url parameters voor Post en Put ergens definieren.
+        requestHeader = makeRequestHeader(command,url,uri);//url parameters voor Post en Put ergens definieren.
 
 
         //send requestheader
@@ -111,7 +111,7 @@ class TCPClient {
 
         int bytes = analyzeHeader();
 
-        saveBody(bytes ,retrieveObject,objName);
+        saveBody(bytes, retrieveObject, uri);
 
 
         if (!retrieveObject)//object already retrieved two lines back
@@ -126,7 +126,6 @@ class TCPClient {
 
         int bytes = 0;
         String t = br.readLine();
-//        bytes += t.getBytes().length;
         if (t.contains("404")){
             throw new Exception("Server not found");
         } else if (t.contains("500")){
@@ -136,8 +135,6 @@ class TCPClient {
         } else if (t.contains("200")){
             while(!t.isEmpty()){
                 t=br.readLine();
-//                bytes+=2;//enter costs 3 bytes
-//                bytes += t.getBytes().length;
                 if (t.contains("Content-Length")){
                     String[] strings = t.split(": ");
                     bytes = Integer.parseInt(strings[1]);
@@ -179,9 +176,13 @@ class TCPClient {
             String[] strings = objName.split("\\.");
             ImageInputStream iis = ImageIO.createImageInputStream(fstream);
             BufferedImage image = ImageIO.read(iis);
-            ImageIO.write(image, strings[1], new File(objName));
+            File outputFile = new File(objName);
+            outputFile.getParentFile().mkdirs();
+            ImageIO.write(image, strings[1], outputFile);
         }
+
         fstream.close();
+
     }
 
     private static ArrayList<String> makeRequestHeader(String command, String url, String loc) {
@@ -198,7 +199,6 @@ class TCPClient {
             request.add("");
             request.add(body); // nog te definieren
         }
-
         return request;
     }
 
@@ -214,8 +214,11 @@ class TCPClient {
         Elements images = doc.select("img");
         for (Element el : images) {
             String imageURI = el.attr("src");
-            String[] strings = imageURI.split("/");
-            TCPClient("GET",url,imageURI,null,true,strings[strings.length-1]);
+            try {
+                TCPClient("GET", url, imageURI, null, true);
+            } catch (Exception e){
+
+            }
         }
 
     }
