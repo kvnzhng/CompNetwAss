@@ -61,11 +61,11 @@ public class TCPServer {
 
         // read nextline
         requestLine = requestFromClient.readLine();
-        requestLine.toLowerCase();
-        if(!requestLine.contains("host:")){ //hoofdletter insensitive maken?
+        if(!requestLine.toLowerCase().contains("host:")){ //hoofdletter insensitive maken?
             throw new UnknownHostException();
         }
-        String host = requestLine; // hostopslaan
+        String[] splits = requestLine.split(" ");
+        String host = splits[1]; // host opslaan
 //
 //        if (!containsHostHeader) {
 //            System.out.println("400 Bad Request");
