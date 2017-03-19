@@ -63,9 +63,10 @@ public class TCPServer {
 
         // read nextline
         requestLine = requestFromClient.readLine();
-        if(!requestLine.contains("Host:")){
+        if(!requestLine.contains("Host:")){ //hoofdletter insensitive maken?
             throw new UnknownHostException();
         }
+        String host = requestLine; // hostopslaan
 //
 //        while (requestLine!=null) {
 //            if (requestLine.contains("host:"))
