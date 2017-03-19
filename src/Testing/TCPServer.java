@@ -11,10 +11,12 @@ import java.io.OutputStreamWriter;
 import java.io.DataOutputStream;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.net.UnknownHostException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.nio.file.attribute.FileTime;
 import java.text.SimpleDateFormat;
 import java.util.*;
 
@@ -23,19 +25,17 @@ public class TCPServer {
     private static String statusCode;
     private static String body;
     private static int port = 8080;
-    private static String hostName = ""; //TODO: wat moet hier?
+    private static String hostName = "localhost"; //TODO: wat moet hier?
     private static boolean containsHostHeader = false;
     private static Socket connectionSocket;
 
-    public void main(String args[]) throws Exception { //listen on port 80 (or other)
+    public static void main(String args[]) throws Exception { //listen on port 80 (or other)
         ServerSocket serverSocket = new ServerSocket(port);
         while(true)
         {
             connectionSocket = serverSocket.accept();
             BufferedReader requestFromClient = new BufferedReader(new InputStreamReader (connectionSocket.getInputStream()));
-            DataOutputStream responseToClient = new DataOutputStream(connectionSocket.getOutputStream());
-            TCPServer(requestFromClient, responseToClient);
-
+            TCPServer(requestFromClient);
         }
     }
     //TODO multithreaded (assistent zei dat we eerst moeten zorgen dat het voor 1 client werkt)
@@ -43,42 +43,66 @@ public class TCPServer {
     //TODO persistent connection
     //TODO status codes implementeren
 
-    public void TCPServer(BufferedReader requestFromClient, DataOutputStream responseToClient) throws Exception {
+    public static void TCPServer(BufferedReader requestFromClient) throws Exception {
 
         //request
 
+        DataOutputStream responseToClient = new DataOutputStream(connectionSocket.getOutputStream());
+
         String requestLine = requestFromClient.readLine();
-        String[] initialLine = requestLine.split(" ");
-        String command = initialLine[0];
+//        System.out.println("Received: " + requestLine);
+//        String capitalizedSentence = requestLine.toUpperCase() + '\n';
+//        responseToClient.writeBytes(capitalizedSentence);
 
-        while (requestLine!=null) {
-            if (requestLine.contains("Host:"))
-                containsHostHeader = true;
-        }
 
-        if (!containsHostHeader) {
-            System.out.println("400 Bad Request");
-            return;
+
+        String[] initialStrings = requestLine.split(" ");
+        String command = initialStrings[0];
+        String path = initialStrings[1];
+        String version = initialStrings[2];
+
+        // read nextline
+        requestLine = requestFromClient.readLine();
+        if(!requestLine.contains("Host:")){
+            throw new UnknownHostException();
         }
+//
+//        while (requestLine!=null) {
+//            if (requestLine.contains("host:"))
+//                containsHostHeader = true;
+//        }
+//
+//        if (!containsHostHeader) {
+//            System.out.println("400 Bad Request");
+//            return;
+//        }
+
+        statusCode = "200 OK";
+
+
+        Path pathOfBody = Paths.get("body.html"); // <-- deze lijn werkt enkel indien TCPClient al eens is uitgevoergd geweest
+        body = new String(Files.readAllBytes(pathOfBody));
+        FileTime modifiedDate = Files.getLastModifiedTime(pathOfBody);
+        int bodyLength = body.getBytes().length;
 
         //response
         SimpleDateFormat date = new SimpleDateFormat("EEE, dd MMM yyyy HH:mm:ss", Locale.ENGLISH);
         date.setTimeZone(TimeZone.getTimeZone("GMT"));
 
-        responseToClient.writeBytes("HTTP/1.1" + statusCode); //TODO statusCode definieren
-        responseToClient.writeBytes("Date: " + date.format(new Date()) + " GMT");
-        responseToClient.writeBytes("If-Modified-since: "); //TODO hiermee bepalen of 304 Not Modified moet teruggegeven worden
-        responseToClient.writeBytes("Content-type: "); //TODO
-        responseToClient.writeBytes("Content-length: " + body.length());
-        responseToClient.writeBytes("");
+        responseToClient.writeBytes("HTTP/1.1" + statusCode+"\n"); //TODO statusCode definieren
+        responseToClient.writeBytes("Date: " + date.format(new Date()) + " GMT \n");
+        responseToClient.writeBytes("If-Modified-since: "+modifiedDate.toString()+"\n"); //TODO hiermee bepalen of 304 Not Modified moet teruggegeven worden
+        responseToClient.writeBytes("Content-type: \n"); //TODO
+        responseToClient.writeBytes("Content-length: " + bodyLength +"\n");
+        responseToClient.writeBytes("\n");
         if (!command.equals("HEAD"))
-            responseToClient.writeBytes(body); //TODO body definieren
+            responseToClient.writeBytes(body+"\n");
 
         responseToClient.close();
         requestFromClient.close();
         connectionSocket.close();
 
-
-
     }
+
+
 }
