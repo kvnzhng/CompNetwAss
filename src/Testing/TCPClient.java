@@ -227,6 +227,8 @@ class TCPClient {
             br.close();
 
         } else{
+            //TODO: veralgemenen naar alle soorten objecten:
+            //http://www.baeldung.com/convert-input-stream-to-a-file
             String[] strings = objName.split("\\.");
             ImageInputStream iis = ImageIO.createImageInputStream(fstream);
             BufferedImage image = ImageIO.read(iis);
