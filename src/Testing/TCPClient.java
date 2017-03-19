@@ -146,7 +146,7 @@ class TCPClient {
         //Analyze header, returns how long the body is (in bytes)
         int bytes = analyzeHeader();
 
-        if (command=="GET")
+        if (command.equals("GET"))
             saveBody(bytes, retrieveObject, uri);
 
         if (!retrieveObject)//object already retrieved two lines back
@@ -186,7 +186,6 @@ class TCPClient {
             throw new Exception("Other error");
         }
     }
-
     /**
      * Saves the response to a local file.
      * @param stream The stream to be saved
