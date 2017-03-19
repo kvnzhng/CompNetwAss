@@ -213,7 +213,7 @@ class TCPClient {
         if (!object) {
             BufferedReader br = new BufferedReader(new InputStreamReader(fstream));
 
-            Path dst = Paths.get("body.html");
+            Path dst = Paths.get("index.html");
             BufferedWriter writer = Files.newBufferedWriter(dst, StandardCharsets.UTF_8);
 
             String t;
@@ -281,11 +281,11 @@ class TCPClient {
      * @throws Exception
      */
 
-    // Zou eig geen input nodig moeten hebben, valt normaal te lezen uit de body.html file
+    // Zou eig geen input nodig moeten hebben, valt normaal te lezen uit de index.html file
     // het kan zelfs zijn dat images van andere sites worden gehaald.
     // TODO: images van andere hosts ophalen indien nodig.
     private static void getImages(String host) throws Exception { // retrieve images from the html file
-        byte[] encoded = Files.readAllBytes(Paths.get("body.html"));
+        byte[] encoded = Files.readAllBytes(Paths.get("index.html"));
         String htmlAsString = new String(encoded, StandardCharsets.UTF_8);
         Document doc = Jsoup.parse(htmlAsString);
         Elements images = doc.select("img");

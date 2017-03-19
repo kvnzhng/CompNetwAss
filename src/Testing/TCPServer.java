@@ -68,21 +68,23 @@ public class TCPServer {
         }
         String host = requestLine; // hostopslaan
 //
-//        while (requestLine!=null) {
-//            if (requestLine.contains("host:"))
-//                containsHostHeader = true;
-//        }
-//
 //        if (!containsHostHeader) {
 //            System.out.println("400 Bad Request");
 //            return;
 //        }
 
-        statusCode = "200 OK";
+        String uri;
+        if (Objects.equals(path, "/"))
+            uri = "index.html";
+        else if (path.substring(0,1).matches("\\/"))
+            uri = path.substring(1);
+        else
+            uri=path;
 
 
-        Path pathOfBody = Paths.get("body.html"); // <-- deze lijn werkt enkel indien TCPClient al eens is uitgevoergd geweest
+        Path pathOfBody = Paths.get(uri); // <-- deze lijn werkt enkel indien TCPClient al eens is uitgevoergd geweest
         body = new String(Files.readAllBytes(pathOfBody));
+        statusCode = "200 OK";
         FileTime modifiedDate = Files.getLastModifiedTime(pathOfBody);
         int bodyLength = body.getBytes().length;
 
