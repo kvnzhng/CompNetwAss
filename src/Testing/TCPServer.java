@@ -85,6 +85,7 @@ public class TCPServer {
         String body = new String(Files.readAllBytes(pathOfBody));
         String statusCode = "200 OK";
         FileTime modifiedDate = Files.getLastModifiedTime(pathOfBody);
+        String type = getType(uri);
         int bodyLength = body.getBytes().length;
 
         //response
@@ -94,7 +95,7 @@ public class TCPServer {
         responseToClient.writeBytes("HTTP/1.1" + statusCode +"\n"); //TODO statusCode definieren
         responseToClient.writeBytes("Date: " + date.format(new Date()) + " GMT \n");
         responseToClient.writeBytes("If-Modified-since: "+modifiedDate.toString()+"\n"); //TODO hiermee bepalen of 304 Not Modified moet teruggegeven worden
-        responseToClient.writeBytes("Content-type: \n"); //TODO
+        responseToClient.writeBytes("Content-type: "+ type +"\n"); //TODO
         responseToClient.writeBytes("Content-length: " + bodyLength +"\n");
         responseToClient.writeBytes("\n");
         if (!command.equals("HEAD"))
@@ -104,6 +105,23 @@ public class TCPServer {
         requestFromClient.close();
         connectionSocket.close();
 
+    }
+
+    private static String getType(String uri) {
+        String extension = "";
+
+        int i = uri.lastIndexOf('.');
+        if (i > 0) {
+            extension = uri.substring(i+1);
+        }
+
+        String partOne;
+        if (extension.equals("html"))
+            partOne = "text/";
+        else
+            partOne = "image";
+
+        return partOne+extension;
     }
 
 
