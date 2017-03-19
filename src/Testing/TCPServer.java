@@ -22,14 +22,12 @@ import java.util.*;
 
 public class TCPServer {
 
-    private static String statusCode;
-    private static String body;
-    private static int port = 8080;
     private static String hostName = "localhost"; //TODO: wat moet hier?
     private static boolean containsHostHeader = false;
     private static Socket connectionSocket;
 
     public static void main(String args[]) throws Exception { //listen on port 80 (or other)
+        int port = 8080;
         ServerSocket serverSocket = new ServerSocket(port);
         while(true)
         {
@@ -63,7 +61,8 @@ public class TCPServer {
 
         // read nextline
         requestLine = requestFromClient.readLine();
-        if(!requestLine.contains("Host:")){ //hoofdletter insensitive maken?
+        requestLine.toLowerCase();
+        if(!requestLine.contains("host:")){ //hoofdletter insensitive maken?
             throw new UnknownHostException();
         }
         String host = requestLine; // hostopslaan
@@ -83,8 +82,8 @@ public class TCPServer {
 
 
         Path pathOfBody = Paths.get(uri); // <-- deze lijn werkt enkel indien TCPClient al eens is uitgevoergd geweest
-        body = new String(Files.readAllBytes(pathOfBody));
-        statusCode = "200 OK";
+        String body = new String(Files.readAllBytes(pathOfBody));
+        String statusCode = "200 OK";
         FileTime modifiedDate = Files.getLastModifiedTime(pathOfBody);
         int bodyLength = body.getBytes().length;
 
@@ -92,14 +91,14 @@ public class TCPServer {
         SimpleDateFormat date = new SimpleDateFormat("EEE, dd MMM yyyy HH:mm:ss", Locale.ENGLISH);
         date.setTimeZone(TimeZone.getTimeZone("GMT"));
 
-        responseToClient.writeBytes("HTTP/1.1" + statusCode+"\n"); //TODO statusCode definieren
+        responseToClient.writeBytes("HTTP/1.1" + statusCode +"\n"); //TODO statusCode definieren
         responseToClient.writeBytes("Date: " + date.format(new Date()) + " GMT \n");
         responseToClient.writeBytes("If-Modified-since: "+modifiedDate.toString()+"\n"); //TODO hiermee bepalen of 304 Not Modified moet teruggegeven worden
         responseToClient.writeBytes("Content-type: \n"); //TODO
         responseToClient.writeBytes("Content-length: " + bodyLength +"\n");
         responseToClient.writeBytes("\n");
         if (!command.equals("HEAD"))
-            responseToClient.writeBytes(body+"\n");
+            responseToClient.writeBytes(body +"\n");
 
         responseToClient.close();
         requestFromClient.close();
