@@ -77,36 +77,39 @@ class TCPClient {
     }
 
     /**
-     *
-     * @param command
-     * @param url
+     * Creates a socket to the given host, and requests immediately the given command.
+     * @param command The request Command: GET, HEAD, POST, PUT
+     * @param host The host to connect to
      * @throws Exception
      */
-    public static void TCPClient(String command, String url) throws Exception {
-        TCPClient(command, url,null);
+    public static void TCPClient(String command, String host) throws Exception {
+        TCPClient(command, host,null);
     }
 
     /**
-     *
-     * @param command
-     * @param url
-     * @param port
+     * Creates a socket to the given host to a specific given port, and requests immediately the given command.
+     * @param command The request Command: GET, HEAD, POST, PUT.
+     * @param host The host to connect to
+     * @param port Connects to this specific port
      * @throws Exception
      */
-    public static void TCPClient(String command, String url, String port) throws Exception {
-        TCPClient(command, url,null, port,false);
+    public static void TCPClient(String command, String host, String port) throws Exception {
+        TCPClient(command, host,null, port,false);
     }
 
     /**
+     * Creates a socket to the given host with uri specification to a specific given port,
+     * and requests immediately the given command.
+     * Saves objects when necessary if askes
      *
-     * @param command
-     * @param url
-     * @param uri
-     * @param port
-     * @param retrieveObject
+     * @param command The request Command: GET, HEAD, POST, PUT
+     * @param host The host to connect to
+     * @param uri A specification on the host adress
+     * @param port Connects to this specific port
+     * @param retrieveObject When true, this will save the body as an object(image)
      * @throws Exception
      */
-    public static void TCPClient(String command, String url, String uri, String port, boolean retrieveObject) throws Exception {
+    public static void TCPClient(String command, String host, String uri, String port, boolean retrieveObject) throws Exception {
 
         ArrayList<String> requestHeader;
 
@@ -115,14 +118,14 @@ class TCPClient {
         if (uri == null)
             uri = "";
 
-        InetAddress addr = InetAddress.getByName(url);
+        InetAddress addr = InetAddress.getByName(host);
         Socket clientSocket = new Socket(addr, Integer.parseInt(port));
         PrintWriter pw = new PrintWriter(clientSocket.getOutputStream());
 
         String urlParameters=null;
 
         //make the requestheader
-        requestHeader = makeRequestHeader(command,url,uri);//url parameters voor Post en Put ergens definieren.
+        requestHeader = makeRequestHeader(command,host,uri);//url parameters voor Post en Put ergens definieren.
 
 
         //send requestheader
@@ -137,20 +140,23 @@ class TCPClient {
         stream.close();
         clientSocket.close();
 
+        //Path pathOfResponse = Paths.get("output");
+        //TODO: return the response to the terminal
+
         //Analyze header, returns how long the body is (in bytes)
         int bytes = analyzeHeader();
 
-        saveBody(bytes, retrieveObject, uri);
-
+        if (command=="GET")
+            saveBody(bytes, retrieveObject, uri);
 
         if (!retrieveObject)//object already retrieved two lines back
-            getImages(url);
+            getImages(host);
 
     }
 
     /**
-     *
-     * @return
+     * Checks the response of the server.
+     * @return The size of the body in bytes
      * @throws Exception
      */
     private static int analyzeHeader() throws Exception {
@@ -182,8 +188,8 @@ class TCPClient {
     }
 
     /**
-     *
-     * @param stream
+     * Saves the response to a local file.
+     * @param stream The stream to be saved
      * @throws IOException
      */
     private static void saveResponse(InputStream stream) throws IOException {
@@ -192,10 +198,12 @@ class TCPClient {
     }
 
     /**
+     * Saves the body to a local file.
+     * This can be a HTML file or a object(image file)
      *
-     * @param bytesToSkip
-     * @param object
-     * @param objName
+     * @param bytesToSkip The amount of bytes to skip the header
+     * @param object Is the file we want to save an object (image)
+     * @param objName The name of the object, used to save the file
      * @throws IOException
      */
     private static void saveBody(int bytesToSkip, boolean object, String objName) throws IOException {
@@ -234,19 +242,18 @@ class TCPClient {
 
 
     /**
+     * This method creates a request header, every line is becomes a String.
      *
-     * @param command
-     * @param url
-     * @param loc
-     * @return
+     * @param command The request command sent to the server
+     *                This can be: GET, HEAD, PUT, POST
+     * @param host The hostname of the location we connect to
+     * @param uri The resource location
+     * @return returns an ArrayList of Strings, every string is the next line.
      */
-    private static ArrayList<String> makeRequestHeader(String command, String url, String loc) {
-        /*
-        makes request header
-         */
+    private static ArrayList<String> makeRequestHeader(String command, String host, String uri) {
         ArrayList<String> request = new ArrayList<>();
-        request.add(command + " /" + loc + " HTTP/1.1");
-        request.add("Host: "+url);
+        request.add(command + " /" + uri + " HTTP/1.1");
+        request.add("Host: "+ host);
         if (Objects.equals(command, "POST") || Objects.equals(command, "PUT")) {
             int length = body.length();
             request.add("Content-type: application/x-www-form-urlencoded");
@@ -258,8 +265,9 @@ class TCPClient {
     }
 
     /**
+     * Checks if the given command does exists
      *
-     * @param command
+     * @param command The command to be checked.
      * @return
      */
     private static boolean isImplementedCommand(String command) {
@@ -268,11 +276,15 @@ class TCPClient {
 
 
     /**
-     *
-     * @param url
+     * Searches for images
+     * @param host The host from where we will find the file
      * @throws Exception
      */
-    private static void getImages(String url) throws Exception { // retrieve images from the html file
+
+    // Zou eig geen input nodig moeten hebben, valt normaal te lezen uit de body.html file
+    // het kan zelfs zijn dat images van andere sites worden gehaald.
+    // TODO: images van andere hosts ophalen indien nodig.
+    private static void getImages(String host) throws Exception { // retrieve images from the html file
         byte[] encoded = Files.readAllBytes(Paths.get("body.html"));
         String htmlAsString = new String(encoded, StandardCharsets.UTF_8);
         Document doc = Jsoup.parse(htmlAsString);
@@ -280,7 +292,7 @@ class TCPClient {
         for (Element el : images) {
             String imageURI = el.attr("src");
             try {
-                TCPClient("GET", url, imageURI, null, true);
+                TCPClient("GET", host, imageURI, null, true);
             } catch (Exception e){
 
             }
