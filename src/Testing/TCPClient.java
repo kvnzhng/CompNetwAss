@@ -24,6 +24,11 @@ import java.util.Scanner;
 class TCPClient {
     private static String body;
 
+    /**
+     *
+     * @param args
+     * @throws Exception
+     */
     public static void main(String[] args) throws Exception {
 
         String command;
@@ -71,14 +76,36 @@ class TCPClient {
             System.out.println("501 not implemented");
     }
 
+    /**
+     *
+     * @param command
+     * @param url
+     * @throws Exception
+     */
     public static void TCPClient(String command, String url) throws Exception {
         TCPClient(command, url,null);
     }
 
+    /**
+     *
+     * @param command
+     * @param url
+     * @param port
+     * @throws Exception
+     */
     public static void TCPClient(String command, String url, String port) throws Exception {
         TCPClient(command, url,null, port,false);
     }
 
+    /**
+     *
+     * @param command
+     * @param url
+     * @param uri
+     * @param port
+     * @param retrieveObject
+     * @throws Exception
+     */
     public static void TCPClient(String command, String url, String uri, String port, boolean retrieveObject) throws Exception {
 
         ArrayList<String> requestHeader;
@@ -104,11 +131,13 @@ class TCPClient {
         pw.println("");
         pw.flush();
 
+        //Save the response from server
         InputStream stream = clientSocket.getInputStream();
         saveResponse(stream);
         stream.close();
         clientSocket.close();
 
+        //Analyze header, returns how long the body is (in bytes)
         int bytes = analyzeHeader();
 
         saveBody(bytes, retrieveObject, uri);
@@ -119,6 +148,11 @@ class TCPClient {
 
     }
 
+    /**
+     *
+     * @return
+     * @throws Exception
+     */
     private static int analyzeHeader() throws Exception {
 
         FileInputStream fstream = new FileInputStream("output");
@@ -147,12 +181,24 @@ class TCPClient {
         }
     }
 
+    /**
+     *
+     * @param stream
+     * @throws IOException
+     */
     private static void saveResponse(InputStream stream) throws IOException {
         Path dst = Paths.get("output");
         Files.copy(stream,dst, StandardCopyOption.REPLACE_EXISTING);
     }
 
-    private static void saveBody(int bytesToSkip, boolean object,String objName) throws IOException {
+    /**
+     *
+     * @param bytesToSkip
+     * @param object
+     * @param objName
+     * @throws IOException
+     */
+    private static void saveBody(int bytesToSkip, boolean object, String objName) throws IOException {
         FileInputStream fstream = new FileInputStream("output");
         fstream.skip(fstream.getChannel().size()-bytesToSkip);
 
@@ -172,6 +218,7 @@ class TCPClient {
             }
             writer.close();
             br.close();
+
         } else{
             String[] strings = objName.split("\\.");
             ImageInputStream iis = ImageIO.createImageInputStream(fstream);
@@ -185,6 +232,14 @@ class TCPClient {
 
     }
 
+
+    /**
+     *
+     * @param command
+     * @param url
+     * @param loc
+     * @return
+     */
     private static ArrayList<String> makeRequestHeader(String command, String url, String loc) {
         /*
         makes request header
@@ -202,11 +257,21 @@ class TCPClient {
         return request;
     }
 
+    /**
+     *
+     * @param command
+     * @return
+     */
     private static boolean isImplementedCommand(String command) {
         return (command.equals("GET") || command.equals("HEAD") ||command.equals("POST") ||command.equals("PUT"));
     }
 
 
+    /**
+     *
+     * @param url
+     * @throws Exception
+     */
     private static void getImages(String url) throws Exception { // retrieve images from the html file
         byte[] encoded = Files.readAllBytes(Paths.get("body.html"));
         String htmlAsString = new String(encoded, StandardCharsets.UTF_8);
