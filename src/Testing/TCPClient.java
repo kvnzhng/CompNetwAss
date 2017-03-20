@@ -143,7 +143,7 @@ class TCPClient {
         if (bytes>0) {
             if (command.equals("GET"))
                 saveBody(bytes, retrieveObject, uri);
-            if (!retrieveObject)//object already retrieved two lines back
+            if (retrieveObject)//object already retrieved two lines back
                 getImages(host);
         }
     }
@@ -165,6 +165,7 @@ class TCPClient {
         if (t.contains("200")) {
             while (!t.isEmpty()) {
                 t = br.readLine();
+                System.out.println(t);
                 if (t.contains("Content-Length")) {
                     String[] strings = t.split(": ");
                     bytes = Integer.parseInt(strings[1]);
