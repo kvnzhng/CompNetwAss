@@ -45,6 +45,8 @@ public class TCPServer {
         String requestLine = requestFromClient.readLine();
 
 
+        //TODO: Bad request behandelen
+
         String[] initialStrings = requestLine.split(" ");
         String command = initialStrings[0];
         String path = initialStrings[1];
@@ -111,7 +113,7 @@ public class TCPServer {
             bodyLength = 0;
         }
         SimpleDateFormat date = new SimpleDateFormat("EEE, dd MMM yyyy HH:mm:ss", Locale.ENGLISH);
-        date.setTimeZone(TimeZone.getTimeZone("GMT"));
+        date.setTimeZone(TimeZone.getTimeZone("Europe/Brussels"));
 
         return new String[] {statusCode, date.format(new Date()), modifiedDate, type, Integer.toString(bodyLength), body};
 
