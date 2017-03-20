@@ -8,6 +8,7 @@ import java.io.*;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.net.UnknownHostException;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.NoSuchFileException;
 import java.nio.file.Path;
@@ -45,18 +46,17 @@ public class TCPServer {
         String requestLine = requestFromClient.readLine();
 
 
-        //TODO: Bad request behandelen
-
         String[] initialStrings = requestLine.split(" ");
         String command = initialStrings[0];
         String path = initialStrings[1];
         String version = initialStrings[2];
+        boolean isBadRequest = false;
 
         if (version.equals("HTTP/1.1")){
             // read nextline
             requestLine = requestFromClient.readLine();
             if(!requestLine.toLowerCase().contains("host:")){ //hoofdletter insensitive maken?
-                throw new UnknownHostException();
+                isBadRequest = true;
             }
             String[] splits = requestLine.split(" ");
             String host = splits[1]; // host opslaan
@@ -70,21 +70,26 @@ public class TCPServer {
         else
             uri=path;
 
-
-        String[] data = getHeadResponseData(uri);
+        /*if (command.equals("POST") || command.equals("PUT")) {
+            savePostPutText(requestFromClient);
+        }*/
+        String[] data = getHeadResponseData(uri, isBadRequest);
 
         //response
-        responseToClient.writeBytes("\n");
-        responseToClient.writeBytes(version +" "+ data[0] +"\n"); //TODO statusCode definieren
-        responseToClient.writeBytes("Date: " + data[1] + " GMT \n");
+        responseToClient.writeBytes("\r\n");
+        responseToClient.writeBytes(version +" "+ data[0] +"\r\n"); //TODO statusCode definieren
+        responseToClient.writeBytes("Date: " + data[1] + " GMT \r\n");
         if (!data[0].contains("404")){
-            responseToClient.writeBytes("If-Modified-since: "+data [2] +"\n"); //TODO hiermee bepalen of 304 Not Modified moet teruggegeven worden
-            responseToClient.writeBytes("Content-type: "+ data[3] +"\n"); //TODO
-            responseToClient.writeBytes("Content-length: " + data[4] +"\n");
-            responseToClient.writeBytes("\n");
-            if (!command.equals("HEAD"))
-                responseToClient.writeBytes(data[5] +"\n");
+            responseToClient.writeBytes("If-Modified-since: "+data [2] +"\r\n"); //TODO hiermee bepalen of 304 Not Modified moet teruggegeven worden
+            responseToClient.writeBytes("Content-type: "+ data[3] +"\r\n"); //TODO
+            responseToClient.writeBytes("Content-length: " + data[4] +"\r\n");
+            //responseToClient.writeBytes("\n");
+            //if (!command.equals("HEAD"))
+            responseToClient.writeBytes(data[5] +"\r\n");
+            //responseToClient.writeBytes(data[5] +"\n");
         }
+
+
 
         responseToClient.close();
         requestFromClient.close();
@@ -92,26 +97,43 @@ public class TCPServer {
 
     }
 
-    private static String[] getHeadResponseData(String uri) throws IOException {
+    private static void savePostPutText(BufferedReader requestFromClient) throws IOException {
+        Path dst = Paths.get("postput.txt");
+        BufferedWriter writer = Files.newBufferedWriter(dst, StandardCharsets.UTF_8);
+
+        String t;
+
+        t = requestFromClient.readLine();
+        while(t!=null){
+            writer.write(t);
+            writer.newLine();
+            t = requestFromClient.readLine();
+        }
+        writer.close();
+    }
+
+    private static String[] getHeadResponseData(String uri, boolean isBadRequest) throws IOException {
 
         String body = null;
         String statusCode;
-        int bodyLength;
+        int bodyLength = 0;
         String modifiedDate = null;
         String type = null;
 
         Path pathOfBody = Paths.get(uri); // <-- deze lijn werkt enkel indien TCPClient al eens is uitgevoergd geweest
-        try {
-            body = new String(Files.readAllBytes(pathOfBody));
-            bodyLength = body.getBytes().length;
-            statusCode =  "200 OK";
-            SimpleDateFormat dateModified = new SimpleDateFormat("EEE, dd MMM yyyy HH:mm:ss[.s+]Z", Locale.ENGLISH);
-            modifiedDate = dateModified.format(Files.getLastModifiedTime(pathOfBody).toMillis());
-
-            type = getType(uri);
-        } catch (NoSuchFileException e) {
-            statusCode = "404 Not Found";
-            bodyLength = 0;
+        if(!isBadRequest) {
+            try {
+                body = new String(Files.readAllBytes(pathOfBody));
+                bodyLength = body.getBytes().length;
+                statusCode = "200 OK";
+                SimpleDateFormat dateModified = new SimpleDateFormat("EEE, dd MMM yyyy HH:mm:ss", Locale.ENGLISH);
+                modifiedDate = dateModified.format(Files.getLastModifiedTime(pathOfBody).toMillis());
+                type = getType(uri);
+            } catch (NoSuchFileException e) {
+                statusCode = "404 Not Found";
+            }
+        } else {
+            statusCode = "400 Bad Request";
         }
         SimpleDateFormat date = new SimpleDateFormat("EEE, dd MMM yyyy HH:mm:ss", Locale.ENGLISH);
         date.setTimeZone(TimeZone.getTimeZone("GMT"));
@@ -136,6 +158,4 @@ public class TCPServer {
 
         return partOne+extension;
     }
-
-
 }
