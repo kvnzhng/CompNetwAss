@@ -18,7 +18,7 @@ import java.util.ArrayList;
 import java.util.Objects;
 import java.util.Scanner;
 
-class TCPClient {
+public class TCPClient {
     private static String body;
 
     /**
