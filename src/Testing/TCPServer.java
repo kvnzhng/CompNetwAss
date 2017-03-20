@@ -123,8 +123,9 @@ public class TCPServer {
             try {
                 body = new String(Files.readAllBytes(pathOfBody));
                 bodyLength = body.getBytes().length;
-                statusCode = "200 OK";
-                SimpleDateFormat dateModified = new SimpleDateFormat("EEE, dd MMM yyyy HH:mm:ss", Locale.ENGLISH);
+                statusCode =  "200 OK";
+                SimpleDateFormat dateModified = new SimpleDateFormat("EEE, dd MMM yyyy HH:mm:ss[.s+]Z", Locale.ENGLISH);
+                dateModified.setTimeZone(TimeZone.getTimeZone("GMT"));
                 modifiedDate = dateModified.format(Files.getLastModifiedTime(pathOfBody).toMillis());
                 type = getType(uri);
             } catch (NoSuchFileException e) {
@@ -133,6 +134,8 @@ public class TCPServer {
         } else {
             statusCode = "400 Bad Request";
         }
+
+
         SimpleDateFormat date = new SimpleDateFormat("EEE, dd MMM yyyy HH:mm:ss", Locale.ENGLISH);
         date.setTimeZone(TimeZone.getTimeZone("GMT"));
 
@@ -156,4 +159,6 @@ public class TCPServer {
 
         return partOne+extension;
     }
+
+
 }
