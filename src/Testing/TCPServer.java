@@ -78,16 +78,17 @@ public class TCPServer {
         //response
         responseToClient.writeBytes("\r\n");
         responseToClient.writeBytes(version +" "+ data[0] +"\r\n"); //TODO statusCode definieren
-        responseToClient.writeBytes("Date: " + data[1] + " GMT \r\n");
+        responseToClient.writeBytes("Date: " + data[1] + " GMT\r\n");
         if (!data[0].contains("404")){
             responseToClient.writeBytes("If-Modified-since: "+data [2] +"\r\n"); //TODO hiermee bepalen of 304 Not Modified moet teruggegeven worden
             responseToClient.writeBytes("Content-type: "+ data[3] +"\r\n"); //TODO
             responseToClient.writeBytes("Content-length: " + data[4] +"\r\n");
-            //responseToClient.writeBytes("\n");
-            //if (!command.equals("HEAD"))
-            responseToClient.writeBytes(data[5] +"\r\n");
-            //responseToClient.writeBytes(data[5] +"\n");
+            responseToClient.writeBytes("\r\n");
+                if (!command.equals("HEAD"))
+                    responseToClient.writeBytes(data[5] +"\r\n");
         }
+
+
 
         responseToClient.close();
         requestFromClient.close();
