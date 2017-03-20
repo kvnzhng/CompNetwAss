@@ -140,10 +140,12 @@ class TCPClient {
 
         //Analyze header, returns how long the body is (in bytes)
         int bytes = analyzeHeader();
-        if (command.equals("GET"))
-            saveBody(bytes, retrieveObject, uri);
-        if (!retrieveObject)//object already retrieved two lines back
-            getImages(host);
+        if (bytes>0) {
+            if (command.equals("GET"))
+                saveBody(bytes, retrieveObject, uri);
+            if (!retrieveObject)//object already retrieved two lines back
+                getImages(host);
+        }
     }
 
     /**
@@ -159,15 +161,8 @@ class TCPClient {
 
         int bytes = 0;
         String t = br.readLine();
-        if (t.contains("404")) {
-            System.out.println("j");
-            //throw new FileNotFoundException("Document not found");
-            //TODO: print output to console
-        } else if (t.contains("500")) {
-            //throw new Exception("Server error");
-        } else if (t.contains("304")) {
-            //throw new Exception("Server modified");
-        } else if (t.contains("200")) {
+
+        if (t.contains("200")) {
             while (!t.isEmpty()) {
                 t = br.readLine();
                 if (t.contains("Content-Length")) {
@@ -175,11 +170,15 @@ class TCPClient {
                     bytes = Integer.parseInt(strings[1]);
                 }
             }
-            br.close();
-            return bytes;
+
         } else {
-            throw new Exception("Other error");
+            while (t!=null) {
+                System.out.println(t);
+                t=br.readLine();
+            }
         }
+        fstream.close();
+        br.close();
         return bytes;
     }
 
