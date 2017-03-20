@@ -105,15 +105,16 @@ public class TCPServer {
             body = new String(Files.readAllBytes(pathOfBody));
             bodyLength = body.getBytes().length;
             statusCode =  "200 OK";
-            SimpleDateFormat dateModified = new SimpleDateFormat("EEE, dd MMM yyyy HH:mm:ss", Locale.ENGLISH);
+            SimpleDateFormat dateModified = new SimpleDateFormat("EEE, dd MMM yyyy HH:mm:ss[.s+]Z", Locale.ENGLISH);
             modifiedDate = dateModified.format(Files.getLastModifiedTime(pathOfBody).toMillis());
+
             type = getType(uri);
         } catch (NoSuchFileException e) {
             statusCode = "404 Not Found";
             bodyLength = 0;
         }
         SimpleDateFormat date = new SimpleDateFormat("EEE, dd MMM yyyy HH:mm:ss", Locale.ENGLISH);
-        date.setTimeZone(TimeZone.getTimeZone("Europe/Brussels"));
+        date.setTimeZone(TimeZone.getTimeZone("GMT"));
 
         return new String[] {statusCode, date.format(new Date()), modifiedDate, type, Integer.toString(bodyLength), body};
 

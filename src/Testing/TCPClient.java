@@ -13,10 +13,7 @@ import java.awt.image.BufferedImage;
 import java.io.*;
 import java.net.*;
 import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.nio.file.StandardCopyOption;
+import java.nio.file.*;
 import java.util.ArrayList;
 import java.util.Objects;
 import java.util.Scanner;
@@ -25,7 +22,6 @@ class TCPClient {
     private static String body;
 
     /**
-     *
      * @param args
      * @throws Exception
      */
@@ -35,12 +31,6 @@ class TCPClient {
         if (isImplementedCommand(args[0])) {
             command = args[0];
 
-            try {
-                InetAddress.getByName(args[1]);
-            } catch (UnknownHostException uhe) {
-                System.out.println("404 Not Found");
-                return;
-            }
             String url = args[1];
 
             if (command.equals("POST") || command.equals("PUT")) {
@@ -71,30 +61,31 @@ class TCPClient {
                     e.printStackTrace();
                 }
             }
-        }
-        else
+        } else
             System.out.println("501 not implemented");
     }
 
     /**
      * Creates a socket to the given host, and requests immediately the given command.
+     *
      * @param command The request Command: GET, HEAD, POST, PUT
-     * @param host The host to connect to
+     * @param host    The host to connect to
      * @throws Exception
      */
     public static void TCPClient(String command, String host) throws Exception {
-        TCPClient(command, host,null);
+        TCPClient(command, host, null);
     }
 
     /**
      * Creates a socket to the given host to a specific given port, and requests immediately the given command.
+     *
      * @param command The request Command: GET, HEAD, POST, PUT.
-     * @param host The host to connect to
-     * @param port Connects to this specific port
+     * @param host    The host to connect to
+     * @param port    Connects to this specific port
      * @throws Exception
      */
     public static void TCPClient(String command, String host, String port) throws Exception {
-        TCPClient(command, host,null, port,false);
+        TCPClient(command, host, null, port, false);
     }
 
     /**
@@ -102,10 +93,10 @@ class TCPClient {
      * and requests immediately the given command.
      * Saves objects when necessary if askes
      *
-     * @param command The request Command: GET, HEAD, POST, PUT
-     * @param host The host to connect to
-     * @param uri A specification on the host adress
-     * @param port Connects to this specific port
+     * @param command        The request Command: GET, HEAD, POST, PUT
+     * @param host           The host to connect to
+     * @param uri            A specification on the host adress
+     * @param port           Connects to this specific port
      * @param retrieveObject When true, this will save the body as an object(image)
      * @throws Exception
      */
@@ -122,21 +113,25 @@ class TCPClient {
         Socket clientSocket = new Socket(addr, Integer.parseInt(port));
         PrintWriter pw = new PrintWriter(clientSocket.getOutputStream());
 
-        String urlParameters=null;
+        String urlParameters = null;
 
         //make the requestheader
-        requestHeader = makeRequestHeader(command,host,uri);//url parameters voor Post en Put ergens definieren.
+        requestHeader = makeRequestHeader(command, host, uri);//url parameters voor Post en Put ergens definieren.
 
 
         //send requestheader
-        for (String line: requestHeader)
+        for (String line : requestHeader)
             pw.println(line);
         pw.println("");
         pw.flush();
 
         //Save the response from server
         InputStream stream = clientSocket.getInputStream();
-        saveResponse(stream);
+        try {
+            saveResponse(stream);
+        } catch (FileSystemException e) {
+            //System.out.println(stream + "file already in use..");
+        }
         stream.close();
         clientSocket.close();
 
@@ -145,17 +140,15 @@ class TCPClient {
 
         //Analyze header, returns how long the body is (in bytes)
         int bytes = analyzeHeader();
-
         if (command.equals("GET"))
             saveBody(bytes, retrieveObject, uri);
-
         if (!retrieveObject)//object already retrieved two lines back
             getImages(host);
-
     }
 
     /**
      * Checks the response of the server.
+     *
      * @return The size of the body in bytes
      * @throws Exception
      */
@@ -166,26 +159,30 @@ class TCPClient {
 
         int bytes = 0;
         String t = br.readLine();
-        if (t.contains("404")){
-            throw new Exception("Server not found");
-        } else if (t.contains("500")){
-            throw new Exception("Server error");
-        } else if (t.contains("304")){
-            throw new Exception("Server modified");
-        } else if (t.contains("200")){
-            while(!t.isEmpty()){
-                t=br.readLine();
-                if (t.contains("Content-Length")){
+        if (t.contains("404")) {
+            System.out.println("j");
+            //throw new FileNotFoundException("Document not found");
+            //TODO: print output to console
+        } else if (t.contains("500")) {
+            //throw new Exception("Server error");
+        } else if (t.contains("304")) {
+            //throw new Exception("Server modified");
+        } else if (t.contains("200")) {
+            while (!t.isEmpty()) {
+                t = br.readLine();
+                if (t.contains("Content-Length")) {
                     String[] strings = t.split(": ");
                     bytes = Integer.parseInt(strings[1]);
                 }
             }
             br.close();
             return bytes;
-        } else{
+        } else {
             throw new Exception("Other error");
         }
+        return bytes;
     }
+
     /**
      * Saves the response to a local file.
      * @param stream The stream to be saved
@@ -224,6 +221,7 @@ class TCPClient {
                 t = br.readLine();
             }
             writer.close();
+            fstream.close();
             br.close();
 
         } else{
@@ -292,11 +290,7 @@ class TCPClient {
         Elements images = doc.select("img");
         for (Element el : images) {
             String imageURI = el.attr("src");
-            try {
-                TCPClient("GET", host, imageURI, null, true);
-            } catch (Exception e){
-
-            }
+            TCPClient("GET", host, imageURI, null, true);
         }
 
     }
