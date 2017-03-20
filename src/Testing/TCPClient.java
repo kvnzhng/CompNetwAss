@@ -143,7 +143,7 @@ class TCPClient {
         if (bytes>0) {
             if (command.equals("GET"))
                 saveBody(bytes, retrieveObject, uri);
-            if (retrieveObject)//object already retrieved two lines back
+            if (!retrieveObject)//object already retrieved two lines back
                 getImages(host);
         }
     }
