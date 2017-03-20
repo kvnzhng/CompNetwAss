@@ -76,7 +76,6 @@ public class TCPServer {
         String[] data = getHeadResponseData(uri, isBadRequest);
 
         //response
-        responseToClient.writeBytes("\r\n");
         responseToClient.writeBytes(version +" "+ data[0] +"\r\n"); //TODO statusCode definieren
         responseToClient.writeBytes("Date: " + data[1] + " GMT\r\n");
         if (!data[0].contains("404")){
