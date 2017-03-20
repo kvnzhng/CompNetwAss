@@ -38,8 +38,6 @@ public class TCPServer {
 
     public static void TCPServer(BufferedReader requestFromClient) throws Exception {
 
-        //request
-
         DataOutputStream responseToClient = new DataOutputStream(connectionSocket.getOutputStream());
 
         String requestLine = requestFromClient.readLine();
