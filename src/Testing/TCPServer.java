@@ -104,10 +104,11 @@ public class TCPServer {
         BufferedWriter writer = Files.newBufferedWriter(dst, StandardCharsets.UTF_8);
 
         String t;
-
-        while((t = requestFromClient.readLine())!=null){
+        t = requestFromClient.readLine();
+        while(t!=null){
             writer.write(t);
             writer.newLine();
+            t = requestFromClient.readLine();
         }
         writer.close();
     }
@@ -140,8 +141,14 @@ public class TCPServer {
 
         SimpleDateFormat date = new SimpleDateFormat("EEE, dd MMM yyyy HH:mm:ss", Locale.ENGLISH);
         date.setTimeZone(TimeZone.getTimeZone("GMT"));
+        String thisMoment = date.format(new Date());
 
-        return new String[] {statusCode, date.format(new Date()), modifiedDate, type, Integer.toString(bodyLength), body};
+//        int i = modifiedDate.compareTo(thisMoment);
+//        if (i<0)
+//            statusCode = "304 Not Modified";
+
+
+        return new String[] {statusCode, thisMoment, modifiedDate, type, Integer.toString(bodyLength), body};
 
     }
 
