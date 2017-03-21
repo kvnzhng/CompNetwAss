@@ -1,9 +1,7 @@
 package HTTP;
-
 /**
  * Created by Eleanor on 15/03/2017.
  */
-
 import java.io.*;
 import java.net.ServerSocket;
 import java.net.Socket;
@@ -45,17 +43,13 @@ public class HTTPServer {
         String path = initialStrings[1];
         String version = initialStrings[2];
         boolean isBadRequest = false;
-        if (version.contains("HTTP")){
-            if (version.equals("HTTP/1.1")){
+        if (version.equals("HTTP/1.1")){ //we only support HTTP/1.1
                 requestLine = requestFromClient.readLine();
                 if(!requestLine.toLowerCase().contains("host:")){
                     isBadRequest = true;
                 }
                 String[] splits = requestLine.split(" ");
                 String host = splits[1]; // host opslaan
-            } else if (!version.equals("HTTP/1.0")){
-                isBadRequest = true;
-            }
         } else {
             isBadRequest = true;
         }
@@ -171,6 +165,4 @@ public class HTTPServer {
 
         return partOne+extension;
     }
-
-
 }
