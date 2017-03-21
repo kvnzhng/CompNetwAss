@@ -34,10 +34,9 @@ public class TCPClient {
             String url = args[1];
 
             if (command.equals("POST") || command.equals("PUT")) {
-                //Scanner scanner = new Scanner(System.in);
-                //System.out.println("Enter body: ");
-                //body = scanner.nextLine();
-                body = "tr";
+                Scanner scanner = new Scanner(System.in);
+                System.out.println("Enter body: ");
+                body = scanner.nextLine();
             }
 
             if (args.length == 2) {
@@ -128,42 +127,11 @@ public class TCPClient {
 
         //Save the response from server
         InputStream stream = clientSocket.getInputStream();
-        //if(command.equals("GET") || command.equals("HEAD")) {
-            try {
-                saveResponse(stream);
-            } catch (FileSystemException e) {
-                //System.out.println(stream + "file already in use..");
-            }
-        //} // TODO client sluit connectie af voordat server response stuurt
-        /*else if(command.equals("POST") || command.equals("PUT")) {
-            Path path = Paths.get("output");
-            OutputStream out = new FileOutputStream(path.toFile());
-            byte[] buf = new byte[1024];
-            int len;
-            while((len=stream.read(buf))>0){ // er is nog geen stream
-                out.write(buf,0,len);
-            }
-            out.close();
-            stream.close();
-            //BufferedReader responseFromServer = new BufferedReader(new InputStreamReader(stream));
-
-            Path path = Paths.get("output");
-            BufferedWriter writer = Files.newBufferedWriter(path, StandardCharsets.UTF_8);
-
-            String line;
-
-            line = responseFromServer.readLine(); //TODO hier gaat het mis
-            while(line!=null){
-                writer.write(line);
-                writer.newLine();
-                line = responseFromServer.readLine();
-            }
-            writer.close();
-            stream.close();
-            responseFromServer.close();
-
-
-        }*/
+        try {
+            saveResponse(stream);
+        } catch (FileSystemException e) {
+            //System.out.println(stream + "file already in use..");
+        }
 
 
         clientSocket.close();
