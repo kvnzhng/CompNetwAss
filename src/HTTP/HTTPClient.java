@@ -113,13 +113,11 @@ public class HTTPClient {
         Socket clientSocket = new Socket(addr, Integer.parseInt(port));
         PrintWriter pw = new PrintWriter(clientSocket.getOutputStream());
 
-        String urlParameters = null;
 
-        //make the requestheader
+        //make the requestheader from the given arguments
         requestHeader = makeRequestHeader(command, host, uri);//url parameters voor Post en Put ergens definieren.
 
-
-        //send requestheader
+        //send requestheader to server
         for (String line : requestHeader)
             pw.println(line);
         pw.println("");
@@ -130,14 +128,10 @@ public class HTTPClient {
         try {
             saveResponse(stream);
         } catch (FileSystemException e) {
-            //System.out.println(stream + "file already in use..");
         }
 
-
+        stream.close();
         clientSocket.close();
-
-        //Path pathOfResponse = Paths.get("output");
-        //TODO: return the response to the terminal
 
         //Analyze header, returns how long the body is (in bytes)
         int bytes = analyzeHeader();
@@ -163,8 +157,8 @@ public class HTTPClient {
         int bytes = 0;
         String t = br.readLine();
 
-        if (t.contains("200")) {
-            while (!t.isEmpty()) {
+        if (t.contains("200")) { //200 OK is good
+            while (!t.isEmpty()) { //read the header out, we only read the content-length out
                 t = br.readLine();
                 System.out.println(t);
                 if (t.contains("Content-Length")) {
@@ -192,7 +186,6 @@ public class HTTPClient {
     private static void saveResponse(InputStream stream) throws IOException {
         Path dst = Paths.get("output");
         Files.copy(stream, dst, StandardCopyOption.REPLACE_EXISTING);
-        stream.close();
     }
 
     /**
@@ -223,12 +216,9 @@ public class HTTPClient {
                 t = br.readLine();
             }
             writer.close();
-            fstream.close();
             br.close();
 
         } else{
-            //TODO: veralgemenen naar alle soorten objecten:
-            //http://www.baeldung.com/convert-input-stream-to-a-file
             String[] strings = objName.split("\\.");
             ImageInputStream iis = ImageIO.createImageInputStream(fstream);
             BufferedImage image = ImageIO.read(iis);
@@ -236,9 +226,7 @@ public class HTTPClient {
             outputFile.getParentFile().mkdirs();
             ImageIO.write(image, strings[1], outputFile);
         }
-
         fstream.close();
-
     }
 
 
@@ -253,6 +241,7 @@ public class HTTPClient {
      */
     private static ArrayList<String> makeRequestHeader(String command, String host, String uri) {
         ArrayList<String> request = new ArrayList<>();
+
         request.add(command + " /" + uri + " HTTP/1.1");
         request.add("Host: "+ host);
         if (Objects.equals(command, "POST") || Objects.equals(command, "PUT")) {
@@ -260,7 +249,7 @@ public class HTTPClient {
             request.add("Content-type: text/html");
             request.add("Content-Length: " + length);
             request.add("\r\n");
-            request.add(body); // nog te definieren
+            request.add(body);
         }
         return request;
     }
@@ -281,10 +270,6 @@ public class HTTPClient {
      * @param host The host from where we will find the file
      * @throws Exception
      */
-
-    // Zou eig geen input nodig moeten hebben, valt normaal te lezen uit de index.html file
-    // het kan zelfs zijn dat images van andere sites worden gehaald.
-    // TODO: images van andere hosts ophalen indien nodig.
     private static void getImages(String host) throws Exception { // retrieve images from the html file
         byte[] encoded = Files.readAllBytes(Paths.get("index.html"));
         String htmlAsString = new String(encoded, StandardCharsets.UTF_8);
