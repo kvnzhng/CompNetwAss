@@ -25,13 +25,15 @@ public class HTTPServer {
         while(true)
         {
             connectionSocket = serverSocket.accept();
-            BufferedReader requestFromClient = new BufferedReader(new InputStreamReader (connectionSocket.getInputStream()));
-            serverAction(requestFromClient);
+            if (connectionSocket != null)
+            {
+                Handler h = new Handler(connectionSocket);
+                Thread thread = new Thread(h);
+                thread.start();
+            }
         }
     }
     //TODO multithreaded (assistent zei dat we eerst moeten zorgen dat het voor 1 client werkt)
-    //TODO GET HEAD PUT POST (PUT & POST store received data in text file)
-    //TODO persistent connection
     //TODO status codes implementeren
 
     public static void serverAction(BufferedReader requestFromClient) throws Exception {
