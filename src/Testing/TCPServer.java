@@ -67,24 +67,24 @@ public class TCPServer {
 
         String uri;
         if (Objects.equals(path, "/"))
-            uri = "index.html";
+            uri = "output.html";
         else if (path.substring(0,1).matches("\\/"))
             uri = path.substring(1);
         else
             uri=path;
 
-        /*if (command.equals("POST") || command.equals("PUT")) {
-            savePostPutText(requestFromClient);
-        }*/
+        if (command.equals("POST") || command.equals("PUT")) {
+            savePostPutText(requestFromClient);// TODO hier gaat het mis
+        }
         String[] data = getHeadResponseData(uri, isBadRequest);
 
         //response
-        responseToClient.writeBytes("\r\n");
-        responseToClient.writeBytes(version +" "+ data[0] +"\r\n"); //TODO statusCode definieren
+        //responseToClient.writeBytes("\r\n");
+        responseToClient.writeBytes(version +" "+ data[0] +"\r\n");
         responseToClient.writeBytes("Date: " + data[1] + " GMT\r\n");
         if (!data[0].contains("404")){
             responseToClient.writeBytes("If-Modified-since: "+data [2] +" GMT\r\n"); //TODO hiermee bepalen of 304 Not Modified moet teruggegeven worden
-            responseToClient.writeBytes("Content-type: "+ data[3] +"\r\n"); //TODO
+            responseToClient.writeBytes("Content-type: " + data[3] +"\r\n"); //TODO
             responseToClient.writeBytes("Content-length: " + data[4] +"\r\n");
             responseToClient.writeBytes("\r\n");
             if (!command.equals("HEAD") && !isBadRequest)
@@ -105,11 +105,9 @@ public class TCPServer {
 
         String t;
 
-        t = requestFromClient.readLine();
-        while(t!=null){
+        while((t = requestFromClient.readLine())!=null){
             writer.write(t);
             writer.newLine();
-            t = requestFromClient.readLine();
         }
         writer.close();
     }
