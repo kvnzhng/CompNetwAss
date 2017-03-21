@@ -161,7 +161,7 @@ public class HTTPClient {
             while (!t.isEmpty()) { //read the header out, we only read the content-length out
                 t = br.readLine();
                 System.out.println(t);
-                if (t.contains("Content-Length")) {
+                if (t.toLowerCase().contains("content-length")) {
                     String[] strings = t.split(": ");
                     bytes = Integer.parseInt(strings[1]);
                 }

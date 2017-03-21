@@ -38,19 +38,14 @@ public class HTTPServer {
 
     public static void serverAction(BufferedReader requestFromClient) throws Exception {
 
-        DataOutputStream responseToClient = new DataOutputStream(connectionSocket.getOutputStream());
-
+        //Analyze the request from the client.
         String requestLine = requestFromClient.readLine();
-
-
         String[] initialStrings = requestLine.split(" ");
         String command = initialStrings[0];
         String path = initialStrings[1];
         String version = initialStrings[2];
         boolean isBadRequest = false;
-
         if (version.contains("HTTP")){
-            // read nextline
             if (version.equals("HTTP/1.1")){
                 requestLine = requestFromClient.readLine();
                 if(!requestLine.toLowerCase().contains("host:")){
@@ -65,20 +60,23 @@ public class HTTPServer {
             isBadRequest = true;
         }
 
+
+        //check the path
         String uri;
         if (Objects.equals(path, "/"))
             uri = "output.html";
-        else if (path.substring(0,1).matches("\\/"))
+        else if (path.substring(0,1).matches("\\/")) // /path... case
             uri = path.substring(1);
-        else
+        else //path equals uri immediately path without the "/"
             uri=path;
 
         if (command.equals("POST") || command.equals("PUT")) {
-            savePostPutText(requestFromClient);// TODO hier gaat het mis
+            savePostPutText(requestFromClient);
         }
-        String[] data = getHeadResponseData(uri, isBadRequest);
+        String[] data = getHeaderData(uri, isBadRequest);
 
         //response
+        DataOutputStream responseToClient = new DataOutputStream(connectionSocket.getOutputStream());
         responseToClient.writeBytes(version +" "+ data[0] +"\r\n");
         responseToClient.writeBytes("Date: " + data[1] + " GMT\r\n");
         if (!data[0].contains("404")){
@@ -90,12 +88,9 @@ public class HTTPServer {
                 responseToClient.writeBytes(data[5] +"\r\n");
         }
 
-
-
         responseToClient.close();
         requestFromClient.close();
         connectionSocket.close();
-
     }
 
     private static void savePostPutText(BufferedReader requestFromClient) throws IOException {
@@ -123,12 +118,10 @@ public class HTTPServer {
             }
             t = requestFromClient.readLine();
         }
-
-
         writer.close();
     }
 
-    private static String[] getHeadResponseData(String uri, boolean isBadRequest) throws IOException {
+    private static String[] getHeaderData(String uri, boolean isBadRequest) throws IOException {
 
         String body = null;
         String statusCode;
@@ -157,11 +150,6 @@ public class HTTPServer {
         SimpleDateFormat date = new SimpleDateFormat("EEE, dd MMM yyyy HH:mm:ss", Locale.ENGLISH);
         date.setTimeZone(TimeZone.getTimeZone("GMT"));
         String thisMoment = date.format(new Date());
-
-//        int i = modifiedDate.compareTo(thisMoment);
-//        if (i<0)
-//            statusCode = "304 Not Modified";
-
 
         return new String[] {statusCode, thisMoment, modifiedDate, type, Integer.toString(bodyLength), body};
 
