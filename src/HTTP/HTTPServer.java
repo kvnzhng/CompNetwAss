@@ -80,6 +80,9 @@ public class HTTPServer {
             responseToClient.writeBytes("\r\n");
             if (command.equals("GET") && !isBadRequest)
                 responseToClient.writeBytes(data[5] +"\r\n");
+        }else{
+            responseToClient.writeBytes("Connection: " + data[6]+ "\r\n");
+            responseToClient.writeBytes("\r\n");
         }
 
         responseToClient.close();
@@ -122,6 +125,7 @@ public class HTTPServer {
         int bodyLength = 0;
         String modifiedDate = null;
         String type = null;
+        String connection = null;
 
         Path pathOfBody = Paths.get(uri);
         if(!isBadRequest) {
@@ -135,6 +139,7 @@ public class HTTPServer {
                 type = getType(uri);
             } catch (NoSuchFileException e) {
                 statusCode = "404 Not Found";
+                connection = "close";
             }
         } else {
             statusCode = "400 Bad Request";
@@ -145,7 +150,7 @@ public class HTTPServer {
         date.setTimeZone(TimeZone.getTimeZone("GMT"));
         String thisMoment = date.format(new Date());
 
-        return new String[] {statusCode, thisMoment, modifiedDate, type, Integer.toString(bodyLength), body};
+        return new String[] {statusCode, thisMoment, modifiedDate, type, Integer.toString(bodyLength), body, connection};
 
     }
 
