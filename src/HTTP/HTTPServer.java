@@ -28,7 +28,7 @@ public class HTTPServer {
         {
             connectionSocket = serverSocket.accept();
             BufferedReader requestFromClient = new BufferedReader(new InputStreamReader (connectionSocket.getInputStream()));
-            HTTPServer(requestFromClient);
+            serverAction(requestFromClient);
         }
     }
     //TODO multithreaded (assistent zei dat we eerst moeten zorgen dat het voor 1 client werkt)
@@ -36,7 +36,7 @@ public class HTTPServer {
     //TODO persistent connection
     //TODO status codes implementeren
 
-    public static void HTTPServer(BufferedReader requestFromClient) throws Exception {
+    public static void serverAction(BufferedReader requestFromClient) throws Exception {
 
         DataOutputStream responseToClient = new DataOutputStream(connectionSocket.getOutputStream());
 

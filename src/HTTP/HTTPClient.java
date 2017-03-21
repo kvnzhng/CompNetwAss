@@ -41,7 +41,7 @@ public class HTTPClient {
 
             if (args.length == 2) {
                 try {
-                    HTTPClient(command, url);
+                    clientRequest(command, url);
                 } catch (Exception e) {
                     e.printStackTrace();
                 }
@@ -56,7 +56,7 @@ public class HTTPClient {
                 String port = args[2];
 
                 try {
-                    HTTPClient(command, url, port);
+                    clientRequest(command, url, port);
                 } catch (Exception e) {
                     e.printStackTrace();
                 }
@@ -72,8 +72,8 @@ public class HTTPClient {
      * @param host    The host to connect to
      * @throws Exception
      */
-    public static void HTTPClient(String command, String host) throws Exception {
-        HTTPClient(command, host, null);
+    public static void clientRequest(String command, String host) throws Exception {
+        clientRequest(command, host, null);
     }
 
     /**
@@ -84,8 +84,8 @@ public class HTTPClient {
      * @param port    Connects to this specific port
      * @throws Exception
      */
-    public static void HTTPClient(String command, String host, String port) throws Exception {
-        HTTPClient(command, host, null, port, false);
+    public static void clientRequest(String command, String host, String port) throws Exception {
+        clientRequest(command, host, null, port, false);
     }
 
     /**
@@ -100,7 +100,7 @@ public class HTTPClient {
      * @param retrieveObject When true, this will save the body as an object(image)
      * @throws Exception
      */
-    public static void HTTPClient(String command, String host, String uri, String port, boolean retrieveObject) throws Exception {
+    public static void clientRequest(String command, String host, String uri, String port, boolean retrieveObject) throws Exception {
 
         ArrayList<String> requestHeader;
 
@@ -292,7 +292,7 @@ public class HTTPClient {
         Elements images = doc.select("img");
         for (Element el : images) {
             String imageURI = el.attr("src");
-            HTTPClient("GET", host, imageURI, null, true);
+            clientRequest("GET", host, imageURI, null, true);
         }
 
     }
