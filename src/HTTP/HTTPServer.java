@@ -67,7 +67,9 @@ public class HTTPServer {
         if (command.equals("POST") || command.equals("PUT")) {
             savePostPutText(requestFromClient);
         }
-        String[] data = getHeaderData(uri, isBadRequest);
+        String[] data = createHeaderData(uri, isBadRequest);
+        byte[] body = getBodyData(uri);
+
 
         //response
         DataOutputStream responseToClient = new DataOutputStream(connectionSocket.getOutputStream());
@@ -79,9 +81,9 @@ public class HTTPServer {
             responseToClient.writeBytes("Content-length: " + data[4] +"\r\n");
             responseToClient.writeBytes("\r\n");
             if (command.equals("GET") && !isBadRequest)
-                responseToClient.writeBytes(data[5] +"\r\n");
+                responseToClient.write(body);
         }else{
-            responseToClient.writeBytes("Connection: " + data[6]+ "\r\n");
+            responseToClient.writeBytes("Connection: " + data[5]+ "\r\n");
             responseToClient.writeBytes("\r\n");
         }
 
@@ -118,20 +120,28 @@ public class HTTPServer {
         writer.close();
     }
 
-    private static String[] getHeaderData(String uri, boolean isBadRequest) throws IOException {
+    private static byte[] getBodyData(String uri) throws IOException {
+        Path pathOfBody = Paths.get(uri);
+        byte[] data = null;
+        try {
+            data = Files.readAllBytes(pathOfBody);
+        } catch (NoSuchFileException e){
 
-        String body = null;
+        }
+        return data;
+    }
+
+    private static String[] createHeaderData(String uri, boolean isBadRequest) throws IOException {
         String statusCode;
-        int bodyLength = 0;
+        long bodyLength = 0;
         String modifiedDate = null;
         String type = null;
         String connection = null;
 
-        Path pathOfBody = Paths.get(uri);
         if(!isBadRequest) {
             try {
-                body = new String(Files.readAllBytes(pathOfBody));
-                bodyLength = body.getBytes().length;
+                Path pathOfBody = Paths.get(uri);
+                bodyLength = Files.size(pathOfBody);
                 statusCode =  "200 OK";
                 SimpleDateFormat dateModified = new SimpleDateFormat("EEE, dd MMM yyyy HH:mm:ss", Locale.ENGLISH);
                 dateModified.setTimeZone(TimeZone.getTimeZone("GMT"));
@@ -150,7 +160,7 @@ public class HTTPServer {
         date.setTimeZone(TimeZone.getTimeZone("GMT"));
         String thisMoment = date.format(new Date());
 
-        return new String[] {statusCode, thisMoment, modifiedDate, type, Integer.toString(bodyLength), body, connection};
+        return new String[] {statusCode, thisMoment, modifiedDate, type, Long.toString(bodyLength), connection};
 
     }
 
