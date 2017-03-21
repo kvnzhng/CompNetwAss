@@ -33,7 +33,6 @@ public class HTTPServer {
             }
         }
     }
-    //TODO multithreaded (assistent zei dat we eerst moeten zorgen dat het voor 1 client werkt)
     //TODO status codes implementeren
 
     public static void serverAction(BufferedReader requestFromClient) throws Exception {
