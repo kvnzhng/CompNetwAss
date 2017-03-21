@@ -80,8 +80,10 @@ public class HTTPServer {
             responseToClient.writeBytes("Content-type: " + data[3] +"\r\n"); //TODO
             responseToClient.writeBytes("Content-length: " + data[4] +"\r\n");
             responseToClient.writeBytes("\r\n");
-            if (command.equals("GET") && !isBadRequest)
+            if (command.equals("GET") && !isBadRequest){
                 responseToClient.write(body);
+                responseToClient.writeBytes("\r\n");
+            }
         }else{
             responseToClient.writeBytes("Connection: " + data[5]+ "\r\n");
             responseToClient.writeBytes("\r\n");
