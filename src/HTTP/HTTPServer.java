@@ -15,6 +15,7 @@ import java.util.*;
 
 public class HTTPServer {
 
+    public static final String HTTP_1_1 = "HTTP/1.1";
     private static String hostName = "localhost";
     private static boolean containsHostHeader = false;
     private static Socket connectionSocket;
@@ -26,7 +27,11 @@ public class HTTPServer {
         {
             connectionSocket = serverSocket.accept();
             BufferedReader requestFromClient = new BufferedReader(new InputStreamReader (connectionSocket.getInputStream()));
-            serverAction(requestFromClient);
+            try {
+                serverAction(requestFromClient);
+            }catch (Exception e){
+                sendServerError();
+            }
         }
     }
     //TODO multithreaded (assistent zei dat we eerst moeten zorgen dat het voor 1 client werkt)
@@ -37,26 +42,28 @@ public class HTTPServer {
     public static void serverAction(BufferedReader requestFromClient) throws Exception {
 
         //Analyze the request from the client.
-        String requestLine = requestFromClient.readLine();
-        String[] initialStrings = requestLine.split(" ");
-        String command = initialStrings[0];
-        String path = initialStrings[1];
-        String version = initialStrings[2];
+        String uri;
         boolean isBadRequest = false;
-        if (version.equals("HTTP/1.1")){ //we only support HTTP/1.1
+        boolean serverHasCrashed = false;
+
+            String requestLine = requestFromClient.readLine();
+            String[] initialStrings = requestLine.split(" ");
+            String command = initialStrings[0];
+            String path = initialStrings[1];
+            String version = initialStrings[2];
+            if (version.equals(HTTP_1_1)){ //we only support HTTP/1.1
                 requestLine = requestFromClient.readLine();
                 if(!requestLine.toLowerCase().contains("host:")){
                     isBadRequest = true;
                 }
                 String[] splits = requestLine.split(" ");
                 String host = splits[1]; // host opslaan
-        } else {
-            isBadRequest = true;
-        }
+            } else {
+                isBadRequest = true;
+            }
 
 
         //check the path
-        String uri;
         if (Objects.equals(path, "/"))
             uri = "output.html";
         else if (path.substring(0,1).matches("\\/")) // /path... case
@@ -64,9 +71,10 @@ public class HTTPServer {
         else //path equals uri immediately path without the "/"
             uri=path;
 
-        if (command.equals("POST") || command.equals("PUT")) {
-            savePostPutText(requestFromClient);
-        }
+            if (command.equals("POST") || command.equals("PUT")) {
+                savePostPutText(requestFromClient);
+            }
+
         String[] data = createHeaderData(uri, isBadRequest);
         byte[] body = getBodyData(uri);
 
@@ -75,7 +83,7 @@ public class HTTPServer {
         DataOutputStream responseToClient = new DataOutputStream(connectionSocket.getOutputStream());
         responseToClient.writeBytes(version +" "+ data[0] +"\r\n");
         responseToClient.writeBytes("Date: " + data[1] + " GMT\r\n");
-        if (!data[0].contains("404")){
+        if (!data[0].contains("404") && !data[0].contains("404")){
             responseToClient.writeBytes("If-Modified-since: "+data [2] +" GMT\r\n"); //TODO hiermee bepalen of 304 Not Modified moet teruggegeven worden
             responseToClient.writeBytes("Content-type: " + data[3] +"\r\n"); //TODO
             responseToClient.writeBytes("Content-length: " + data[4] +"\r\n");
@@ -91,6 +99,14 @@ public class HTTPServer {
 
         responseToClient.close();
         requestFromClient.close();
+        connectionSocket.close();
+    }
+
+    private static void sendServerError() throws IOException {
+        DataOutputStream responseToClient = new DataOutputStream(connectionSocket.getOutputStream());
+        responseToClient.writeBytes(HTTP_1_1 + " 500\r\n");
+        responseToClient.writeBytes("Date: " + createDate()+ " GMT\r\n");
+        responseToClient.close();
         connectionSocket.close();
     }
 
@@ -158,12 +174,16 @@ public class HTTPServer {
         }
 
 
-        SimpleDateFormat date = new SimpleDateFormat("EEE, dd MMM yyyy HH:mm:ss", Locale.ENGLISH);
-        date.setTimeZone(TimeZone.getTimeZone("GMT"));
-        String thisMoment = date.format(new Date());
+        String thisMoment = createDate();
 
         return new String[] {statusCode, thisMoment, modifiedDate, type, Long.toString(bodyLength), connection};
 
+    }
+
+    private static String createDate() {
+        SimpleDateFormat date = new SimpleDateFormat("EEE, dd MMM yyyy HH:mm:ss", Locale.ENGLISH);
+        date.setTimeZone(TimeZone.getTimeZone("GMT"));
+        return date.format(new Date());
     }
 
     private static String getType(String uri) {

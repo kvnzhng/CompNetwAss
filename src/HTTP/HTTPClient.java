@@ -139,7 +139,7 @@ public class HTTPClient {
             if (command.equals("GET"))
                 saveBody(bytes, retrieveObject, uri);
             if (!retrieveObject)//object already retrieved two lines back
-                getImages(host);
+                getImages(host, port);
         }
     }
 
@@ -270,14 +270,14 @@ public class HTTPClient {
      * @param host The host from where we will find the file
      * @throws Exception
      */
-    private static void getImages(String host) throws Exception { // retrieve images from the html file
+    private static void getImages(String host, String port) throws Exception { // retrieve images from the html file
         byte[] encoded = Files.readAllBytes(Paths.get("index.html"));
         String htmlAsString = new String(encoded, StandardCharsets.UTF_8);
         Document doc = Jsoup.parse(htmlAsString);
         Elements images = doc.select("img");
         for (Element el : images) {
             String imageURI = el.attr("src");
-            clientRequest("GET", host, imageURI, null, true);
+            clientRequest("GET", host, imageURI, port, true);
         }
 
     }
