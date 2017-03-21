@@ -17,11 +17,11 @@ import java.util.*;
 
 public class TCPServer {
 
-    private static String hostName = "localhost"; //TODO: wat moet hier?
+    private static String hostName = "localhost";
     private static boolean containsHostHeader = false;
     private static Socket connectionSocket;
 
-    public static void main(String args[]) throws Exception { //listen on port 80 (or other)
+    public static void main(String args[]) throws Exception {
         int port = 8080;
         ServerSocket serverSocket = new ServerSocket(port);
         while(true)
@@ -79,7 +79,6 @@ public class TCPServer {
         String[] data = getHeadResponseData(uri, isBadRequest);
 
         //response
-        //responseToClient.writeBytes("\r\n");
         responseToClient.writeBytes(version +" "+ data[0] +"\r\n");
         responseToClient.writeBytes("Date: " + data[1] + " GMT\r\n");
         if (!data[0].contains("404")){
@@ -87,7 +86,7 @@ public class TCPServer {
             responseToClient.writeBytes("Content-type: " + data[3] +"\r\n"); //TODO
             responseToClient.writeBytes("Content-length: " + data[4] +"\r\n");
             responseToClient.writeBytes("\r\n");
-            if (!command.equals("HEAD") && !isBadRequest)
+            if (command.equals("GET") && !isBadRequest)
                 responseToClient.writeBytes(data[5] +"\r\n");
         }
 
@@ -105,11 +104,27 @@ public class TCPServer {
 
         String t;
         t = requestFromClient.readLine();
-        while(t!=null){
-            writer.write(t);
-            writer.newLine();
+        int contentLength = 0;
+        while (true) {
+            if (t.toLowerCase().contains("content-length")) {
+                String[] strings = t.split(": ");
+                contentLength = Integer.parseInt(strings[1]);
+                t = requestFromClient.readLine();
+                while (t.equals("")) {
+                    t = requestFromClient.readLine();
+                }
+                while(contentLength>0) {
+                    writer.write(t);
+                    writer.newLine();
+                    contentLength -= t.length();
+                    t = requestFromClient.readLine();
+                }
+                break;
+            }
             t = requestFromClient.readLine();
         }
+
+
         writer.close();
     }
 
@@ -121,7 +136,7 @@ public class TCPServer {
         String modifiedDate = null;
         String type = null;
 
-        Path pathOfBody = Paths.get(uri); // <-- deze lijn werkt enkel indien TCPClient al eens is uitgevoergd geweest
+        Path pathOfBody = Paths.get(uri);
         if(!isBadRequest) {
             try {
                 body = new String(Files.readAllBytes(pathOfBody));
