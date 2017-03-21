@@ -26,17 +26,14 @@ public class HTTPServer {
         while(true)
         {
             connectionSocket = serverSocket.accept();
-            BufferedReader requestFromClient = new BufferedReader(new InputStreamReader (connectionSocket.getInputStream()));
-            try {
-                serverAction(requestFromClient);
-            }catch (Exception e){
-                sendServerError();
+            if (connectionSocket != null)
+            {
+                Handler h = new Handler(connectionSocket);
+                Thread thread = new Thread(h);
+                thread.start();
             }
         }
     }
-    //TODO multithreaded (assistent zei dat we eerst moeten zorgen dat het voor 1 client werkt)
-    //TODO GET HEAD PUT POST (PUT & POST store received data in text file)
-    //TODO persistent connection
     //TODO status codes implementeren
 
     public static void serverAction(BufferedReader requestFromClient) throws Exception {
@@ -102,15 +99,7 @@ public class HTTPServer {
         connectionSocket.close();
     }
 
-    private static void sendServerError() throws IOException {
-        DataOutputStream responseToClient = new DataOutputStream(connectionSocket.getOutputStream());
-        responseToClient.writeBytes(HTTP_1_1 + " 500\r\n");
-        responseToClient.writeBytes("Date: " + createDate()+ " GMT\r\n");
-        responseToClient.close();
-        connectionSocket.close();
-    }
-
-    private static void savePostPutText(BufferedReader requestFromClient) throws IOException {
+     private static void savePostPutText(BufferedReader requestFromClient) throws IOException {
         Path dst = Paths.get("postput.txt");
         BufferedWriter writer = Files.newBufferedWriter(dst, StandardCharsets.UTF_8);
 
