@@ -34,12 +34,13 @@ public class TCPClient {
             String url = args[1];
 
             if (command.equals("POST") || command.equals("PUT")) {
-                Scanner scanner = new Scanner(System.in);
-                System.out.println("Enter body: ");
-                body = scanner.next();
+                //Scanner scanner = new Scanner(System.in);
+                //System.out.println("Enter body: ");
+                //body = scanner.nextLine();
+                body = "tr";
             }
 
-            if (args.length == 2) {//zo moet het denk ik voor de cmd line
+            if (args.length == 2) {
                 try {
                     TCPClient(command, url);
                 } catch (Exception e) {
@@ -127,12 +128,44 @@ public class TCPClient {
 
         //Save the response from server
         InputStream stream = clientSocket.getInputStream();
-        try {
-            saveResponse(stream);
-        } catch (FileSystemException e) {
-            //System.out.println(stream + "file already in use..");
-        }
-        stream.close();
+        //if(command.equals("GET") || command.equals("HEAD")) {
+            try {
+                saveResponse(stream);
+            } catch (FileSystemException e) {
+                //System.out.println(stream + "file already in use..");
+            }
+        //} // TODO client sluit connectie af voordat server response stuurt
+        /*else if(command.equals("POST") || command.equals("PUT")) {
+            Path path = Paths.get("output");
+            OutputStream out = new FileOutputStream(path.toFile());
+            byte[] buf = new byte[1024];
+            int len;
+            while((len=stream.read(buf))>0){ // er is nog geen stream
+                out.write(buf,0,len);
+            }
+            out.close();
+            stream.close();
+            //BufferedReader responseFromServer = new BufferedReader(new InputStreamReader(stream));
+
+            Path path = Paths.get("output");
+            BufferedWriter writer = Files.newBufferedWriter(path, StandardCharsets.UTF_8);
+
+            String line;
+
+            line = responseFromServer.readLine(); //TODO hier gaat het mis
+            while(line!=null){
+                writer.write(line);
+                writer.newLine();
+                line = responseFromServer.readLine();
+            }
+            writer.close();
+            stream.close();
+            responseFromServer.close();
+
+
+        }*/
+
+
         clientSocket.close();
 
         //Path pathOfResponse = Paths.get("output");
@@ -190,7 +223,8 @@ public class TCPClient {
      */
     private static void saveResponse(InputStream stream) throws IOException {
         Path dst = Paths.get("output");
-        Files.copy(stream,dst, StandardCopyOption.REPLACE_EXISTING);
+        Files.copy(stream, dst, StandardCopyOption.REPLACE_EXISTING);
+        stream.close();
     }
 
     /**
@@ -255,9 +289,9 @@ public class TCPClient {
         request.add("Host: "+ host);
         if (Objects.equals(command, "POST") || Objects.equals(command, "PUT")) {
             int length = body.length();
-            request.add("Content-type: application/x-www-form-urlencoded");
+            request.add("Content-type: text/html");
             request.add("Content-Length: " + length);
-            request.add("");
+            request.add("\r\n");
             request.add(body); // nog te definieren
         }
         return request;
