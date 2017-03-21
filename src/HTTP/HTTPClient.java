@@ -1,4 +1,4 @@
-package Testing;
+package HTTP;
 /**
  * Created by KevinZh on 08/03/2017.
  */
@@ -18,11 +18,11 @@ import java.util.ArrayList;
 import java.util.Objects;
 import java.util.Scanner;
 
-public class TCPClient {
+public class HTTPClient {
     private static String body;
 
     /**
-     * @param args
+     * @param args {"HTTPCommand"	"URI Port"}
      * @throws Exception
      */
     public static void main(String[] args) throws Exception {
@@ -41,7 +41,7 @@ public class TCPClient {
 
             if (args.length == 2) {
                 try {
-                    TCPClient(command, url);
+                    HTTPClient(command, url);
                 } catch (Exception e) {
                     e.printStackTrace();
                 }
@@ -56,7 +56,7 @@ public class TCPClient {
                 String port = args[2];
 
                 try {
-                    TCPClient(command, url, port);
+                    HTTPClient(command, url, port);
                 } catch (Exception e) {
                     e.printStackTrace();
                 }
@@ -72,8 +72,8 @@ public class TCPClient {
      * @param host    The host to connect to
      * @throws Exception
      */
-    public static void TCPClient(String command, String host) throws Exception {
-        TCPClient(command, host, null);
+    public static void HTTPClient(String command, String host) throws Exception {
+        HTTPClient(command, host, null);
     }
 
     /**
@@ -84,8 +84,8 @@ public class TCPClient {
      * @param port    Connects to this specific port
      * @throws Exception
      */
-    public static void TCPClient(String command, String host, String port) throws Exception {
-        TCPClient(command, host, null, port, false);
+    public static void HTTPClient(String command, String host, String port) throws Exception {
+        HTTPClient(command, host, null, port, false);
     }
 
     /**
@@ -100,7 +100,7 @@ public class TCPClient {
      * @param retrieveObject When true, this will save the body as an object(image)
      * @throws Exception
      */
-    public static void TCPClient(String command, String host, String uri, String port, boolean retrieveObject) throws Exception {
+    public static void HTTPClient(String command, String host, String uri, String port, boolean retrieveObject) throws Exception {
 
         ArrayList<String> requestHeader;
 
@@ -292,7 +292,7 @@ public class TCPClient {
         Elements images = doc.select("img");
         for (Element el : images) {
             String imageURI = el.attr("src");
-            TCPClient("GET", host, imageURI, null, true);
+            HTTPClient("GET", host, imageURI, null, true);
         }
 
     }

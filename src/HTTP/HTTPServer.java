@@ -1,4 +1,4 @@
-package Testing;
+package HTTP;
 
 /**
  * Created by Eleanor on 15/03/2017.
@@ -15,7 +15,7 @@ import java.nio.file.Paths;
 import java.text.SimpleDateFormat;
 import java.util.*;
 
-public class TCPServer {
+public class HTTPServer {
 
     private static String hostName = "localhost";
     private static boolean containsHostHeader = false;
@@ -28,7 +28,7 @@ public class TCPServer {
         {
             connectionSocket = serverSocket.accept();
             BufferedReader requestFromClient = new BufferedReader(new InputStreamReader (connectionSocket.getInputStream()));
-            TCPServer(requestFromClient);
+            HTTPServer(requestFromClient);
         }
     }
     //TODO multithreaded (assistent zei dat we eerst moeten zorgen dat het voor 1 client werkt)
@@ -36,7 +36,7 @@ public class TCPServer {
     //TODO persistent connection
     //TODO status codes implementeren
 
-    public static void TCPServer(BufferedReader requestFromClient) throws Exception {
+    public static void HTTPServer(BufferedReader requestFromClient) throws Exception {
 
         DataOutputStream responseToClient = new DataOutputStream(connectionSocket.getOutputStream());
 
