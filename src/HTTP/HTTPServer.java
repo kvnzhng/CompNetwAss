@@ -178,6 +178,7 @@ public class HTTPServer {
         } else {
             statusCode = "400 Bad Request";
             connection = "close";
+
         }
 
 
