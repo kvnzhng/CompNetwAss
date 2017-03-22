@@ -68,18 +68,18 @@ public class HTTPServer {
             isBadRequest = true;
         }
 
-
         //check the path
-        if (Objects.equals(path, "/"))
+        if (command.equals("POST") || command.equals("PUT")) {
+            savePostPutText(requestFromClient);
+            uri = "postput.txt";
+        } else if (Objects.equals(path, "/"))
             uri = "output.html";
         else if (path.substring(0,1).matches("\\/")) // /path... case
             uri = path.substring(1);
         else //path equals uri immediately path without the "/"
             uri=path;
 
-        if (command.equals("POST") || command.equals("PUT")) {
-            savePostPutText(requestFromClient);
-        }
+
 
         String[] data = createHeaderData(uri, isBadRequest, ifModifiedDate);
         byte[] body = getBodyData(uri);
@@ -93,15 +93,14 @@ public class HTTPServer {
             responseToClient.writeBytes("Modified-since: "+data [2] +" GMT\r\n"); //TODO hiermee bepalen of 304 Not Modified moet teruggegeven worden
             responseToClient.writeBytes("Content-type: " + data[3] +"\r\n");
             responseToClient.writeBytes("Content-length: " + data[4] +"\r\n");
-            responseToClient.writeBytes("\r\n");
             if (command.equals("GET") && !isBadRequest){
                 responseToClient.write(body);
-                responseToClient.writeBytes("\r\n");
             }
         }else{
             responseToClient.writeBytes("Connection: " + data[5]+ "\r\n");
-            responseToClient.writeBytes("\r\n");
         }
+        responseToClient.writeBytes("\r\n");
+
 
         responseToClient.close();
         requestFromClient.close();
@@ -125,7 +124,6 @@ public class HTTPServer {
                 }
                 while(contentLength>0) {
                     writer.write(t);
-                    writer.newLine();
                     contentLength -= t.length();
                     t = requestFromClient.readLine();
                 }
