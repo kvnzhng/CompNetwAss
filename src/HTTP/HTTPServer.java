@@ -10,6 +10,7 @@ import java.nio.file.Files;
 import java.nio.file.NoSuchFileException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.*;
 
@@ -40,24 +41,32 @@ public class HTTPServer {
 
         //Analyze the request from the client.
         String uri;
+        String ifModifiedDate = createDate(new Date(0));
         boolean isBadRequest = false;
-        boolean serverHasCrashed = false;
 
-            String requestLine = requestFromClient.readLine();
-            String[] initialStrings = requestLine.split(" ");
-            String command = initialStrings[0];
-            String path = initialStrings[1];
-            String version = initialStrings[2];
-            if (version.equals(HTTP_1_1)){ //we only support HTTP/1.1
-                requestLine = requestFromClient.readLine();
-                if(!requestLine.toLowerCase().contains("host:")){
-                    isBadRequest = true;
+        String requestLine = requestFromClient.readLine();
+        String[] initialStrings = requestLine.split(" ");
+        String command = initialStrings[0];
+        String path = initialStrings[1];
+        String version = initialStrings[2];
+        if (version.equals(HTTP_1_1)){ //we only support HTTP/1.1
+            requestLine = requestFromClient.readLine();
+            if(command.equals("GET")) {
+                if (requestLine.toLowerCase().contains("if-modified-since:" )) {
+                    String[] modified = requestLine.split(": ");
+                    ifModifiedDate = modified[1];
+                    requestLine = requestFromClient.readLine();
                 }
-                String[] splits = requestLine.split(" ");
-                String host = splits[1]; // host opslaan
-            } else {
+
+            }
+            if(!requestLine.toLowerCase().contains("host:")){
                 isBadRequest = true;
             }
+            String[] splits = requestLine.split(" ");
+            String host = splits[1]; // host opslaan
+        } else {
+            isBadRequest = true;
+        }
 
 
         //check the path
@@ -68,11 +77,11 @@ public class HTTPServer {
         else //path equals uri immediately path without the "/"
             uri=path;
 
-            if (command.equals("POST") || command.equals("PUT")) {
-                savePostPutText(requestFromClient);
-            }
+        if (command.equals("POST") || command.equals("PUT")) {
+            savePostPutText(requestFromClient);
+        }
 
-        String[] data = createHeaderData(uri, isBadRequest);
+        String[] data = createHeaderData(uri, isBadRequest, ifModifiedDate);
         byte[] body = getBodyData(uri);
 
 
@@ -80,9 +89,9 @@ public class HTTPServer {
         DataOutputStream responseToClient = new DataOutputStream(connectionSocket.getOutputStream());
         responseToClient.writeBytes(version +" "+ data[0] +"\r\n");
         responseToClient.writeBytes("Date: " + data[1] + " GMT\r\n");
-        if (!data[0].contains("404") && !data[0].contains("404")){
-            responseToClient.writeBytes("If-Modified-since: "+data [2] +" GMT\r\n"); //TODO hiermee bepalen of 304 Not Modified moet teruggegeven worden
-            responseToClient.writeBytes("Content-type: " + data[3] +"\r\n"); //TODO
+        if (data[0].contains("200")){
+            responseToClient.writeBytes("Modified-since: "+data [2] +" GMT\r\n"); //TODO hiermee bepalen of 304 Not Modified moet teruggegeven worden
+            responseToClient.writeBytes("Content-type: " + data[3] +"\r\n");
             responseToClient.writeBytes("Content-length: " + data[4] +"\r\n");
             responseToClient.writeBytes("\r\n");
             if (command.equals("GET") && !isBadRequest){
@@ -138,7 +147,7 @@ public class HTTPServer {
         return data;
     }
 
-    private static String[] createHeaderData(String uri, boolean isBadRequest) throws IOException {
+    private static String[] createHeaderData(String uri, boolean isBadRequest, String ifModifiedDate) throws IOException {
         String statusCode;
         long bodyLength = 0;
         String modifiedDate = null;
@@ -153,6 +162,16 @@ public class HTTPServer {
                 SimpleDateFormat dateModified = new SimpleDateFormat("EEE, dd MMM yyyy HH:mm:ss", Locale.ENGLISH);
                 dateModified.setTimeZone(TimeZone.getTimeZone("GMT"));
                 modifiedDate = dateModified.format(Files.getLastModifiedTime(pathOfBody).toMillis());
+                try {
+
+                    Date simpleModifiedDate = new SimpleDateFormat("EEE, dd MMM yyyy HH:mm:ss").parse(modifiedDate);
+                    Date simpleIfModifiedDate = new SimpleDateFormat("EEE, dd MMM yyyy HH:mm:ss").parse(ifModifiedDate);
+                    int compare = simpleIfModifiedDate.compareTo(simpleModifiedDate);
+                    if (compare >= 0) {
+                        statusCode = "304 Not Modified";
+                    }
+                } catch (ParseException pexc) { }
+
                 type = getType(uri);
             } catch (NoSuchFileException e) {
                 statusCode = "404 Not Found";
@@ -163,16 +182,16 @@ public class HTTPServer {
         }
 
 
-        String thisMoment = createDate();
+        String thisMoment = createDate(new Date());
 
         return new String[] {statusCode, thisMoment, modifiedDate, type, Long.toString(bodyLength), connection};
 
     }
 
-    private static String createDate() {
+    static String createDate(Date dateTime) {
         SimpleDateFormat date = new SimpleDateFormat("EEE, dd MMM yyyy HH:mm:ss", Locale.ENGLISH);
         date.setTimeZone(TimeZone.getTimeZone("GMT"));
-        return date.format(new Date());
+        return date.format(dateTime);
     }
 
     private static String getType(String uri) {
