@@ -14,9 +14,8 @@ import java.io.*;
 import java.net.*;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.*;
-import java.util.ArrayList;
-import java.util.Objects;
-import java.util.Scanner;
+import java.text.SimpleDateFormat;
+import java.util.*;
 
 public class HTTPClient {
     private static String body;
@@ -136,10 +135,11 @@ public class HTTPClient {
         //Analyze header, returns how long the body is (in bytes)
         int bytes = analyzeHeader();
         if (bytes>0) {
-            if (command.equals("GET"))
+            if (command.equals("GET")) {
                 saveBody(bytes, retrieveObject, uri);
-            if (!retrieveObject)//object already retrieved two lines back
-                getImages(host, port);
+                if (!retrieveObject)//object already retrieved two lines back
+                    getImages(host, port);
+            }
         }
     }
 
@@ -243,6 +243,8 @@ public class HTTPClient {
         ArrayList<String> request = new ArrayList<>();
 
         request.add(command + " /" + uri + " HTTP/1.1");
+        if (Objects.equals(command, "GET"))
+            request.add("If-Modified-Since: " + createDate(new Date()));
         request.add("Host: "+ host);
         if (Objects.equals(command, "POST") || Objects.equals(command, "PUT")) {
             int length = body.length();
@@ -281,4 +283,11 @@ public class HTTPClient {
         }
 
     }
+
+    static String createDate(Date dateTime) {
+        SimpleDateFormat date = new SimpleDateFormat("EEE, dd MMM yyyy HH:mm:ss", Locale.ENGLISH);
+        date.setTimeZone(TimeZone.getTimeZone("GMT"));
+        return date.format(dateTime);
+    }
+
 }
